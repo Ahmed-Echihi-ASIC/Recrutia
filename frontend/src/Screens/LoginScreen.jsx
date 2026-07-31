@@ -15,16 +15,54 @@ export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigation = useNavigation();
-    //fonction de validation LoginScreen
-    const handleLogin = () => {
-    const validationErrors = LoginScreenValidation(email, password);
 
-    if (Object.keys(validationErrors).length > 0) {
-        setErrors(validationErrors);
-        return;
+
+    //fonction de validation LoginScreen
+ const handleLogin = async () => {
+  console.log("Bouton cliqué");
+  console.log("Email :", email);
+  console.log("Password :", password);
+
+  const validationErrors = LoginScreenValidation(email, password);
+
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+
+  try {
+    console.log("Avant fetch");
+
+    const response = await fetch(
+      "http://192.168.100.34:8000/?action=login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    );
+
+    console.log("Après fetch");
+
+    const data = await response.json();
+
+    console.log("Réponse :", data);
+
+    if (data.success) {
+      navigation.replace("Home");
+    } else {
+      alert(data.message);
     }
 
-    };
+  } catch (error) {
+    console.log("Erreur :", error);
+  }
+};
 
 
 return (

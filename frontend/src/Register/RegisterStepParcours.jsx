@@ -86,15 +86,17 @@ export default function RegisterStepParcours({
             </Text>
             )}
 
-            <SearchableSelect
-    label="Spécialité"
-    data={SelectData.specialite}
-    value={form.specialite}
-    icon="construct-outline"
-    onSelect={(value) =>
-        setForm({ ...form, specialite: value })
-    }
-/>
+            
+        <CustomSelect
+            label="Spécialité"
+            value={form.specialite}
+            onValueChange={(value) =>
+                setForm({ ...form, specialite: value })
+            }
+            items={SelectData.specialite}
+            icon="construct-outline"
+            />
+
             {errors.specialite && (
             <Text style={styles.error}>
             {errors.specialite}
