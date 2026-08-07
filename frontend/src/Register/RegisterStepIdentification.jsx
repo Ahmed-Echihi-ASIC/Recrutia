@@ -110,20 +110,32 @@ const handleNext = () => {
         </Text>
 
         <FilePickerButton
-          title="Choisir un fichier"
-          icon="cloud-upload-outline"
-          onPress={() => {}}
-        />
+    title="Choisir un fichier"
+    icon="cloud-upload-outline"
+    value={form.pieceIdentite}
+    onChange={(file) =>
+        setForm({
+            ...form,
+            pieceIdentite: file,
+        })
+    }
+/>
 
         <Text style={styles.label}>
           Importer Certificat NNI
         </Text>
 
         <FilePickerButton
-          title="Choisir un fichier"
-          icon="cloud-upload-outline"
-          onPress={() => {}}
-        />
+    title="Choisir un fichier"
+    icon="cloud-upload-outline"
+    value={form.certificatNNI}
+    onChange={(file) =>
+        setForm({
+            ...form,
+            certificatNNI: file,
+        })
+    }
+/>
 
         <NextButton onPress={handleNext} />
         <BackButton onPress={onBack} />

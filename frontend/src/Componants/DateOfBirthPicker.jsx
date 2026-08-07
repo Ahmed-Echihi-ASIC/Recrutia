@@ -30,18 +30,40 @@ export default function DateOfBirthPicker({
     }).start();
   }, [isFocused, value]);
 
+  // Convertit n'importe quelle valeur en Date
+  const getDateObject = (date) => {
+    if (!date) return new Date(2000, 0, 1);
+
+    if (date instanceof Date) {
+      return date;
+    }
+
+    return new Date(date);
+  };
+
+  // Affichage français
+  const formatDate = (date) => {
+    if (!date) return "";
+
+    const d = getDateObject(date);
+
+    if (isNaN(d.getTime())) return "";
+
+    return d.toLocaleDateString("fr-FR");
+  };
+
+  // Android / IOS
   const handleChange = (event, selectedDate) => {
     setShowPicker(false);
     setIsFocused(false);
 
     if (selectedDate) {
-      onChange(selectedDate);
-    }
-  };
+      const date = selectedDate
+        .toISOString()
+        .split("T")[0];
 
-  const formatDate = (date) => {
-    if (!date) return "";
-    return date.toLocaleDateString("fr-FR");
+      onChange(date);
+    }
   };
 
   const labelStyle = {
@@ -67,6 +89,9 @@ export default function DateOfBirthPicker({
     }),
   };
 
+  // ==========================
+  // WEB
+  // ==========================
   if (Platform.OS === "web") {
     return (
       <View
@@ -89,20 +114,25 @@ export default function DateOfBirthPicker({
           type="date"
           value={
             value
-              ? value.toISOString().split("T")[0]
+              ? getDateObject(value)
+                  .toISOString()
+                  .split("T")[0]
               : ""
           }
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          onChange={(e) =>
-            onChange(new Date(e.target.value))
-          }
+          onChange={(e) => {
+            onChange(e.target.value);
+          }}
           style={styles.webInput}
         />
       </View>
     );
   }
 
+  // ==========================
+  // ANDROID / IOS
+  // ==========================
   return (
     <View
       style={[
@@ -141,7 +171,7 @@ export default function DateOfBirthPicker({
 
       {showPicker && (
         <DateTimePicker
-          value={value || new Date(2000, 0, 1)}
+          value={getDateObject(value)}
           mode="date"
           display="default"
           maximumDate={new Date()}
@@ -155,7 +185,6 @@ export default function DateOfBirthPicker({
 const styles = StyleSheet.create({
   container: {
     position: "relative",
-
     flexDirection: "row",
     alignItems: "center",
 

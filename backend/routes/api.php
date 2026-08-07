@@ -12,6 +12,22 @@ switch($action){
         $controller->login();
         break;
 
+    case "forgot_password":
+        $controller->forgotPassword();
+        break;
+
+    case "reset_password":
+        $controller->resetPassword();
+        break;
+
+    case "register":
+        $controller->register();
+        break;
+
+    case "update_profile":
+        $controller->updateProfile();
+        break;
+
     default:
         echo json_encode([
             "message"=>"API Recrutia"

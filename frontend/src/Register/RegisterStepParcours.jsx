@@ -149,21 +149,39 @@ export default function RegisterStepParcours({
             </Text>
             )}
 
-            <Text style={styles.label}>Importer CV</Text>
+    
+    
+    <Text style={styles.label}>Importer CV</Text>
 
-                <FilePickerButton
-                title="Choisir un fichier"
-                icon="cloud-upload-outline"
-                onPress={() => {}}
-                />
+<FilePickerButton
+  title="Choisir un fichier"
+  icon="cloud-upload-outline"
+  value={form.cv}
+  onChange={(file) => {
+    console.log("CV sélectionné :", file);
 
-            <Text style={styles.label}>Importer photo</Text>
+    setForm({
+      ...form,
+      cv: file,
+    });
+  }}
+/>
 
-                <FilePickerButton
-                title="Choisir un fichier"
-                icon="camera-outline"
-                onPress={() => {}}
-                />
+<Text style={styles.label}>Importer photo</Text>
+
+<FilePickerButton
+  title="Choisir un fichier"
+  icon="camera-outline"
+  value={form.photo}
+  onChange={(file) => {
+    console.log("PHOTO sélectionnée :", file);
+
+    setForm({
+      ...form,
+      photo: file,
+    });
+  }}
+/>
 
 
             

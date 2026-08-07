@@ -1,11 +1,22 @@
 import {TouchableOpacity, Text , StyleSheet} from "react-native";
-export default function NextButton({title="Suivant" , onPress}){
+export default function NextButton({title="Suivant" , onPress, disabled = false}){
     return (
         <TouchableOpacity
-        style={styles.button}
+        style={[
+          styles.button,
+          disabled && styles.disabledButton,
+        ]}
         onPress={onPress}
+        disabled={disabled}
         >
-            <Text style={styles.text}>{title}</Text>
+            <Text
+              style={[
+                styles.text,
+                disabled && styles.disabledText,
+              ]}
+            >
+              {title}
+            </Text>
         </TouchableOpacity>
     )
 }
@@ -23,5 +34,13 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+
+  disabledButton: {
+    backgroundColor: "#C9C9C9",
+  },
+
+  disabledText: {
+    color: "#666",
   },
 });

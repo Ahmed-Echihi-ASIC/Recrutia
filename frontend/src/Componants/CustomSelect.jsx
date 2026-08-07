@@ -1,3 +1,4 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,7 +7,7 @@ export default function CustomSelect({
   label,
   value,
   onValueChange,
-  items,
+  items = [],
   icon,
 }) {
   return (
@@ -14,12 +15,14 @@ export default function CustomSelect({
       <Text style={styles.label}>{label}</Text>
 
       <View style={styles.inputContainer}>
-        <Ionicons
-          name={icon}
-          size={22}
-          color="#777"
-          style={styles.icon}
-        />
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={22}
+            color="#777"
+            style={styles.icon}
+          />
+        )}
 
         <Picker
           selectedValue={value}
@@ -31,13 +34,14 @@ export default function CustomSelect({
             value=""
           />
 
-          {items.map((item) => (
-            <Picker.Item
-              key={item.value}
-              label={item.label}
-              value={item.value}
-            />
-          ))}
+          {Array.isArray(items) &&
+            items.map((item) => (
+              <Picker.Item
+                key={item.value}
+                label={item.label}
+                value={item.value}
+              />
+            ))}
         </Picker>
       </View>
     </View>
@@ -64,6 +68,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 10,
     backgroundColor: "#fff",
+    overflow: "hidden",
   },
 
   icon: {
@@ -72,5 +77,6 @@ const styles = StyleSheet.create({
 
   picker: {
     flex: 1,
+    height: 55,
   },
 });
