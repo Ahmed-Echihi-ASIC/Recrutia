@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   Animated,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../Context/ThemeContext";
 
 export default function CustomInput({
   label,
@@ -16,6 +17,7 @@ export default function CustomInput({
   keyboardType = "default",
   secureTextEntry = false,
 }) {
+  const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [hidePassword, setHidePassword] = useState(secureTextEntry);
 
@@ -31,24 +33,25 @@ export default function CustomInput({
 
   const labelStyle = {
     position: "absolute",
-    left: 46,
-    backgroundColor: "#fff",
+    left: 44,
+    backgroundColor: colors.inputBg || colors.card || "#FFFFFF",
     paddingHorizontal: 4,
+    borderRadius: 4,
     zIndex: 10,
 
     top: animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [14, -8],
+      outputRange: [14, -10],
     }),
 
     fontSize: animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [15, 11],
+      outputRange: [14, 11],
     }),
 
     color: animation.interpolate({
       inputRange: [0, 1],
-      outputRange: ["#999", "darkorange"],
+      outputRange: [colors.subText || "#999", colors.primary || "darkorange"],
     }),
   };
 
@@ -56,25 +59,32 @@ export default function CustomInput({
     <View
       style={[
         styles.container,
-        isFocused && styles.focusedContainer,
+        {
+          backgroundColor: colors.inputBg || colors.card || "#FFFFFF",
+          borderColor: isFocused
+            ? colors.primary || "darkorange"
+            : colors.inputBorder || colors.border || "#E5E7EB",
+          borderWidth: isFocused ? 2 : 1.5,
+        },
       ]}
     >
-      <Animated.Text style={labelStyle}>
-        {label}
-      </Animated.Text>
+      <Animated.Text style={labelStyle}>{label}</Animated.Text>
 
-      <Ionicons
-        name={icon}
-        size={22}
-        color={isFocused ? "darkorange" : "#777"}
-      />
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={20}
+          color={isFocused ? colors.primary || "darkorange" : colors.subText || "#777"}
+        />
+      )}
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: colors.inputText || colors.text || "#111827" }]}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         secureTextEntry={hidePassword}
+        placeholderTextColor={colors.placeholder || "#9CA3AF"}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       />
@@ -82,15 +92,12 @@ export default function CustomInput({
       {secureTextEntry && (
         <TouchableOpacity
           onPress={() => setHidePassword(!hidePassword)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons
-            name={
-              hidePassword
-                ? "eye-off-outline"
-                : "eye-outline"
-            }
-            size={22}
-            color="#777"
+            name={hidePassword ? "eye-off-outline" : "eye-outline"}
+            size={20}
+            color={colors.subText || "#777"}
           />
         </TouchableOpacity>
       )}
@@ -101,34 +108,19 @@ export default function CustomInput({
 const styles = StyleSheet.create({
   container: {
     position: "relative",
-
     flexDirection: "row",
     alignItems: "center",
-
-    height: 50,
-
+    height: 52,
     marginHorizontal: 20,
     marginBottom: 18,
-
-    paddingHorizontal: 12,
-
-    borderWidth: 1.5,
-    borderColor: "#CFCFCF",
-    borderRadius: 10,
-
-    backgroundColor: "#FFFFFF",
-  },
-
-  focusedContainer: {
-    borderColor: "darkorange",
-    borderWidth: 2,
+    paddingHorizontal: 14,
+    borderRadius: 12,
   },
 
   input: {
     flex: 1,
     marginLeft: 10,
     fontSize: 15,
-    color: "#000",
     paddingVertical: 0,
   },
 });

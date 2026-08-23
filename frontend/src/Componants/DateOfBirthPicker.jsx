@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../Context/ThemeContext";
 
 export default function DateOfBirthPicker({
   label,
   value,
   onChange,
 }) {
+  const { colors } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -30,124 +32,118 @@ export default function DateOfBirthPicker({
     }).start();
   }, [isFocused, value]);
 
-  // Convertit n'importe quelle valeur en Date
   const getDateObject = (date) => {
     if (!date) return new Date(2000, 0, 1);
-
-    if (date instanceof Date) {
-      return date;
-    }
-
+    if (date instanceof Date) return date;
     return new Date(date);
   };
 
-  // Affichage français
   const formatDate = (date) => {
     if (!date) return "";
-
     const d = getDateObject(date);
-
     if (isNaN(d.getTime())) return "";
-
     return d.toLocaleDateString("fr-FR");
   };
 
-  // Android / IOS
   const handleChange = (event, selectedDate) => {
     setShowPicker(false);
     setIsFocused(false);
 
     if (selectedDate) {
-      const date = selectedDate
-        .toISOString()
-        .split("T")[0];
-
+      const date = selectedDate.toISOString().split("T")[0];
       onChange(date);
     }
   };
 
   const labelStyle = {
     position: "absolute",
-    left: 46,
-    backgroundColor: "#fff",
+    left: 44,
+    backgroundColor: colors.inputBg || colors.card || "#FFFFFF",
     paddingHorizontal: 4,
+    borderRadius: 4,
     zIndex: 10,
 
     top: animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [14, -8],
+      outputRange: [14, -10],
     }),
 
     fontSize: animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [15, 11],
+      outputRange: [14, 11],
     }),
 
     color: animation.interpolate({
       inputRange: [0, 1],
-      outputRange: ["#999", "darkorange"],
+      outputRange: [colors.subText || "#999", colors.primary || "darkorange"],
     }),
   };
 
-  // ==========================
-  // WEB
-  // ==========================
   if (Platform.OS === "web") {
     return (
       <View
         style={[
           styles.container,
-          isFocused && styles.focusedContainer,
+          {
+            backgroundColor: colors.inputBg || colors.card || "#FFFFFF",
+            borderColor: isFocused
+              ? colors.primary || "darkorange"
+              : colors.inputBorder || colors.border || "#E5E7EB",
+            borderWidth: isFocused ? 2 : 1.5,
+          },
         ]}
       >
-        <Animated.Text style={labelStyle}>
-          {label}
-        </Animated.Text>
+        <Animated.Text style={labelStyle}>{label}</Animated.Text>
 
         <Ionicons
           name="calendar-outline"
-          size={22}
-          color={isFocused ? "darkorange" : "#777"}
+          size={20}
+          color={isFocused ? colors.primary || "darkorange" : colors.subText || "#777"}
         />
 
         <input
           type="date"
           value={
             value
-              ? getDateObject(value)
-                  .toISOString()
-                  .split("T")[0]
+              ? getDateObject(value).toISOString().split("T")[0]
               : ""
           }
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          onChange={(e) => {
-            onChange(e.target.value);
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            flex: 1,
+            marginLeft: 10,
+            borderWidth: 0,
+            outlineStyle: "none",
+            fontSize: 15,
+            backgroundColor: "transparent",
+            color: colors.inputText || colors.text || "#1F2937",
           }}
-          style={styles.webInput}
         />
       </View>
     );
   }
 
-  // ==========================
-  // ANDROID / IOS
-  // ==========================
   return (
     <View
       style={[
         styles.container,
-        isFocused && styles.focusedContainer,
+        {
+          backgroundColor: colors.inputBg || colors.card || "#FFFFFF",
+          borderColor: isFocused
+            ? colors.primary || "darkorange"
+            : colors.inputBorder || colors.border || "#E5E7EB",
+          borderWidth: isFocused ? 2 : 1.5,
+        },
       ]}
     >
-      <Animated.Text style={labelStyle}>
-        {label}
-      </Animated.Text>
+      <Animated.Text style={labelStyle}>{label}</Animated.Text>
 
       <Ionicons
         name="calendar-outline"
-        size={22}
-        color={isFocused ? "darkorange" : "#777"}
+        size={20}
+        color={isFocused ? colors.primary || "darkorange" : colors.subText || "#777"}
       />
 
       <TouchableOpacity
@@ -160,12 +156,10 @@ export default function DateOfBirthPicker({
         <Text
           style={[
             styles.dateText,
-            !value && { color: "#999" },
+            { color: value ? colors.inputText || colors.text : colors.placeholder || "#9CA3AF" },
           ]}
         >
-          {value
-            ? formatDate(value)
-            : "Sélectionner une date"}
+          {value ? formatDate(value) : "Sélectionner une date"}
         </Text>
       </TouchableOpacity>
 
@@ -187,24 +181,11 @@ const styles = StyleSheet.create({
     position: "relative",
     flexDirection: "row",
     alignItems: "center",
-
-    height: 50,
-
+    height: 52,
     marginHorizontal: 20,
     marginBottom: 18,
-
-    paddingHorizontal: 12,
-
-    borderWidth: 1.5,
-    borderColor: "#CFCFCF",
-    borderRadius: 10,
-
-    backgroundColor: "#FFFFFF",
-  },
-
-  focusedContainer: {
-    borderColor: "darkorange",
-    borderWidth: 2,
+    paddingHorizontal: 14,
+    borderRadius: 12,
   },
 
   dateButton: {
@@ -215,15 +196,5 @@ const styles = StyleSheet.create({
 
   dateText: {
     fontSize: 15,
-    color: "#000",
-  },
-
-  webInput: {
-    flex: 1,
-    marginLeft: 10,
-    borderWidth: 0,
-    outlineStyle: "none",
-    fontSize: 15,
-    backgroundColor: "transparent",
   },
 });

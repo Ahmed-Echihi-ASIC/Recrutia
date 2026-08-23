@@ -1,19 +1,16 @@
 import { useState } from "react";
-import { StyleSheet, View, Text, Platform } from "react-native";
+import { StyleSheet, View, Text, Platform, Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../Context/ThemeContext";
+import { SERVER_URL } from "../Config/config";
 
 import RegisterStepInfos from "../Register/RegisterStepInfos";
 import RegisterStepParcours from "../Register/RegisterStepParcours";
 import RegisterStepConfirm from "../Register/RegisterStepConfirm";
 import RegisterStepIdentification from "../Register/RegisterStepIdentification";
-import { useNavigation } from "@react-navigation/native";
 
 // ==========================
 // Helper : ajoute un fichier au FormData
-// - Sur le web (Platform.OS === "web"), les fichiers sélectionnés
-//   contiennent un vrai objet File du navigateur (fileObj.file),
-//   il faut l'envoyer directement.
-// - Sur mobile (iOS/Android), React Native attend un objet
-//   { uri, name, type } qu'il convertit lui-même en fichier.
 // ==========================
 const appendFile = (formData, fieldName, fileObj, defaultType) => {
   if (!fileObj) return;
@@ -23,8 +20,8 @@ const appendFile = (formData, fieldName, fileObj, defaultType) => {
   } else {
     formData.append(fieldName, {
       uri: fileObj.uri,
-      name: fileObj.name,
-      type: fileObj.mimeType || defaultType,
+      name: fileObj.name || "file",
+      type: fileObj.mimeType || fileObj.type || defaultType,
     });
   }
 };
@@ -32,6 +29,8 @@ const appendFile = (formData, fieldName, fileObj, defaultType) => {
 export default function RegisterScreen() {
   const [step, setStep] = useState(1);
   const navigation = useNavigation();
+  const { colors } = useTheme();
+
   const [form, setForm] = useState({
     diplome: "",
     nom: "",
@@ -58,8 +57,6 @@ export default function RegisterScreen() {
     ville: "",
     arrondissement: "",
 
-    // Champs utilisés par RegisterStepIdentification — manquants
-    // jusqu'ici, ce qui rendait les inputs "non contrôlés" au départ.
     typePiece: "",
     numeroPiece: "",
     dateExpiration: "",
@@ -73,9 +70,6 @@ export default function RegisterScreen() {
     try {
       const formData = new FormData();
 
-      // ==========================
-      // Informations personnelles
-      // ==========================
       formData.append("nom", form.nom);
       formData.append("prenom", form.prenom);
       formData.append("email", form.email);
@@ -94,9 +88,6 @@ export default function RegisterScreen() {
       formData.append("situation_familiale", form.situationFamiliale);
       formData.append("nombre_enfants", form.nombreEnfant);
 
-      // ==========================
-      // Parcours
-      // ==========================
       formData.append("diplome", form.diplome);
       formData.append("niveau_etude", form.NiveauEtude);
       formData.append("specialite", form.specialite);
@@ -106,17 +97,11 @@ export default function RegisterScreen() {
       formData.append("nombre_experiences", form.NbrExperience);
       formData.append("duree_experience", form.DureeExperience);
 
-      // ==========================
-      // Identification
-      // ==========================
       formData.append("numero_national", form.nni);
       formData.append("type_piece_identite", form.typePiece);
       formData.append("numero_piece_identite", form.numeroPiece);
       formData.append("date_expiration_piece", form.dateExpiration);
 
-      // ==========================
-      // Fichiers (photo, CV, pièce identité, certificat NNI)
-      // ==========================
       appendFile(formData, "photo", form.photo, "image/jpeg");
       appendFile(formData, "cv", form.cv, "application/pdf");
       appendFile(
@@ -132,14 +117,8 @@ export default function RegisterScreen() {
         "application/pdf"
       );
 
-      console.log("Envoi des données...");
-      console.log("PHOTO :", form.photo);
-      console.log("CV :", form.cv);
-      console.log("PIECE :", form.pieceIdentite);
-      console.log("NNI :", form.certificatNNI);
-
       const response = await fetch(
-        "http://192.168.100.34:8000/?action=register",
+        `${SERVER_URL}/?action=register`,
         {
           method: "POST",
           body: formData,
@@ -148,31 +127,28 @@ export default function RegisterScreen() {
 
       const text = await response.text();
 
-      console.log(text);
-
       let data;
-
       try {
         data = JSON.parse(text);
       } catch (e) {
-        alert("Réponse invalide du serveur");
+        Alert.alert("Erreur", "Réponse invalide du serveur");
         return;
       }
 
       if (data.success) {
-        alert("Compte créé avec succès");
+        Alert.alert("Succès", "Compte créé avec succès !");
         navigation.replace("Login");
       } else {
-        alert(data.message);
+        Alert.alert("Erreur", data.message || "Erreur lors de l'inscription");
       }
     } catch (error) {
       console.log(error);
-      alert("Erreur de connexion");
+      Alert.alert("Erreur", "Erreur de connexion au serveur");
     }
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {step === 1 && (
         <RegisterStepInfos
           form={form}

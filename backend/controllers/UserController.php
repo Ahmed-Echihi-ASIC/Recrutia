@@ -1,20 +1,17 @@
 <?php
 
 require_once "../config/Database.php";
-require_once "../config/Mailer.php";
 require_once "../models/User.php";
 
 class UserController
 {
     private $user;
-    private $mailer;
 
     public function __construct()
     {
         $database = new Database();
         $db = $database->connect();
         $this->user = new User($db);
-        $this->mailer = new Mailer();
     }
 
     // ==========================
@@ -53,156 +50,6 @@ class UserController
     }
 
     // ==========================
-    // MOT DE PASSE OUBLIE
-    // ==========================
-    public function forgotPassword()
-    {
-        header("Content-Type: application/json");
-
-        $data = json_decode(file_get_contents("php://input"), true);
-
-        if (!$data) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Aucune donnée reçue."
-            ]);
-            return;
-        }
-
-        $email = trim($data["email"] ?? "");
-
-        if ($email === "" || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Adresse email invalide."
-            ]);
-            return;
-        }
-
-        try {
-            $reset = $this->user->createPasswordResetToken($email);
-
-            $emailSent = false;
-
-            if ($reset) {
-                $emailSent = $this->mailer->sendPasswordReset(
-                    $email,
-                    $reset["token"]
-                );
-
-                error_log(
-                    "RESET PASSWORD TOKEN for " .
-                    $email .
-                    " : " .
-                    $reset["token"] .
-                    " (expires at " .
-                    $reset["expires_at"] .
-                    ")"
-                );
-            }
-
-            $response = [
-                "success" => true,
-                "message" => $emailSent
-                    ? "Code de réinitialisation envoyé par email."
-                    : "Email non configuré sur le serveur. Code affiché en mode test."
-            ];
-
-            if ($reset && !$emailSent) {
-                $response["dev_token"] = $reset["token"];
-            }
-
-            echo json_encode($response);
-
-        } catch (Exception $e) {
-            error_log(
-                "Erreur forgotPassword: " .
-                $e->getMessage()
-            );
-
-            echo json_encode([
-                "success" => false,
-                "message" => "Erreur lors de la demande de réinitialisation."
-            ]);
-        }
-    }
-
-    public function resetPassword()
-    {
-        header("Content-Type: application/json");
-
-        $data = json_decode(file_get_contents("php://input"), true);
-
-        if (!$data) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Aucune donnée reçue."
-            ]);
-            return;
-        }
-
-        $email = trim($data["email"] ?? "");
-        $token = trim($data["token"] ?? "");
-        $newPassword = $data["mot_de_passe"] ?? $data["password"] ?? "";
-
-        if ($email === "" || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Adresse email invalide."
-            ]);
-            return;
-        }
-
-        if ($token === "") {
-            echo json_encode([
-                "success" => false,
-                "message" => "Jeton de réinitialisation manquant."
-            ]);
-            return;
-        }
-
-        if (strlen($newPassword) < 8) {
-            echo json_encode([
-                "success" => false,
-                "message" => "Le mot de passe doit contenir au moins 8 caractères."
-            ]);
-            return;
-        }
-
-        try {
-            $updated = $this->user->resetPasswordWithToken(
-                $email,
-                $token,
-                $newPassword
-            );
-
-            if (!$updated) {
-                echo json_encode([
-                    "success" => false,
-                    "message" => "Lien de réinitialisation invalide ou expiré."
-                ]);
-                return;
-            }
-
-            echo json_encode([
-                "success" => true,
-                "message" => "Mot de passe réinitialisé avec succès."
-            ]);
-
-        } catch (Exception $e) {
-            error_log(
-                "Erreur resetPassword: " .
-                $e->getMessage()
-            );
-
-            echo json_encode([
-                "success" => false,
-                "message" => "Erreur lors de la réinitialisation du mot de passe."
-            ]);
-        }
-    }
-
-    // ==========================
     // INSCRIPTION
     // ==========================
     public function register()
@@ -211,9 +58,9 @@ class UserController
 
         $data = $_POST;
 
+        // Debug : voir exactement ce qui arrive côté serveur
         error_log("=== REGISTER : POST reçu ===");
         error_log(print_r($data, true));
-
         error_log("=== REGISTER : FILES reçus ===");
         error_log(print_r($_FILES, true));
 
@@ -225,6 +72,7 @@ class UserController
             return;
         }
 
+        // Vérification des champs obligatoires
         if (
             empty($data["nom"]) ||
             empty($data["prenom"]) ||
@@ -238,6 +86,7 @@ class UserController
             return;
         }
 
+        // Vérifier si l'email existe déjà
         if ($this->user->emailExists($data["email"])) {
             echo json_encode([
                 "success" => false,
@@ -247,9 +96,15 @@ class UserController
         }
 
         // ==========================
-        // UPLOAD
+        // Upload des fichiers
         // ==========================
 
+        // IMPORTANT : chemins relatifs SANS "../" car le serveur PHP
+        // (php -S ... depuis public/) sert uniquement le contenu de
+        // public/. Si on écrit dans "../uploads" (= backend/uploads),
+        // les fichiers existent bien sur le disque mais sont
+        // inaccessibles via une URL http://IP:8000/uploads/...
+        // On enregistre donc directement dans public/uploads/...
         $data["photo"] = $this->uploadFile(
             "photo",
             "uploads/photos"
@@ -270,10 +125,7 @@ class UserController
             "uploads/certificat_nni"
         );
 
-        // ==========================
-        // INSERTION
-        // ==========================
-
+        // Enregistrement
         if ($this->user->register($data)) {
 
             echo json_encode([
@@ -287,38 +139,30 @@ class UserController
                 "success" => false,
                 "message" => "Erreur lors de l'inscription."
             ]);
+
         }
     }
 
     // ==========================
     // MODIFIER PROFIL
     // ==========================
+    // Reçoit du multipart/form-data (comme register()) car des
+    // fichiers peuvent être remplacés. Avant chaque remplacement,
+    // l'ancien fichier physique est supprimé pour ne pas accumuler
+    // de fichiers orphelins dans uploads/.
+    // ==========================
     public function updateProfile()
     {
         header("Content-Type: application/json");
 
-        /*
-         * IMPORTANT :
-         * Pour modifier les fichiers, le frontend doit envoyer
-         * FormData et non JSON.
-         *
-         * Les champs texte arrivent dans $_POST
-         * Les fichiers arrivent dans $_FILES
-         */
-
         $data = $_POST;
 
-        error_log("=== UPDATE PROFILE : POST ===");
+        error_log("=== UPDATE_PROFILE : POST reçu ===");
         error_log(print_r($data, true));
-
-        error_log("=== UPDATE PROFILE : FILES ===");
+        error_log("=== UPDATE_PROFILE : FILES reçus ===");
         error_log(print_r($_FILES, true));
 
-        // ==========================
-        // Vérifier ID
-        // ==========================
-
-        if (empty($data["id"])) {
+        if (empty($data) || empty($data["id"])) {
             echo json_encode([
                 "success" => false,
                 "message" => "Utilisateur non identifié."
@@ -328,20 +172,26 @@ class UserController
 
         $id = $data["id"];
 
-        if (
-            empty(trim($data["nom"] ?? "")) ||
-            empty(trim($data["prenom"] ?? "")) ||
-            empty(trim($data["email"] ?? "")) ||
-            empty(trim($data["telephone"] ?? ""))
-        ) {
+        // On récupère le user actuel pour connaître les anciens
+        // chemins de fichiers (nécessaire pour la suppression et
+        // pour garder l'ancien fichier si aucun nouveau n'est envoyé)
+        $currentUser = $this->user->getById($id);
+
+        if (!$currentUser) {
             echo json_encode([
                 "success" => false,
-                "message" => "Nom, prénom, email et téléphone sont obligatoires."
+                "message" => "Utilisateur introuvable."
             ]);
             return;
         }
 
-        if ($this->user->emailExistsForOtherUser($data["email"], $id)) {
+        // Si l'email a changé, vérifier qu'il n'est pas déjà pris
+        // par un AUTRE utilisateur
+        if (
+            isset($data["email"]) &&
+            $data["email"] !== $currentUser["email"] &&
+            $this->user->emailExistsForOtherUser($data["email"], $id)
+        ) {
             echo json_encode([
                 "success" => false,
                 "message" => "Cet email est déjà utilisé par un autre compte."
@@ -350,90 +200,48 @@ class UserController
         }
 
         // ==========================
-        // FICHIERS
+        // Gestion des fichiers : remplace uniquement si un nouveau
+        // fichier a été envoyé, et supprime l'ancien dans ce cas.
         // ==========================
-
-        /*
-         * On ne remplace le fichier que si
-         * l'utilisateur en sélectionne un nouveau.
-         */
-
-        if (isset($_FILES["photo"])) {
-
-            $photo = $this->uploadFile(
-                "photo",
-                "uploads/photos"
-            );
-
-            if ($photo !== "") {
-                $data["photo"] = $photo;
-            }
-        }
-
-        if (isset($_FILES["cv"])) {
-
-            $cv = $this->uploadFile(
-                "cv",
-                "uploads/cv"
-            );
-
-            if ($cv !== "") {
-                $data["cv"] = $cv;
-            }
-        }
-
-        if (isset($_FILES["piece_identite"])) {
-
-            $piece = $this->uploadFile(
-                "piece_identite",
-                "uploads/piece_identite"
-            );
-
-            if ($piece !== "") {
-                $data["fichier_piece_identite"] = $piece;
-            }
-        }
-
-        if (isset($_FILES["certificat_nni"])) {
-
-            $certificat = $this->uploadFile(
-                "certificat_nni",
-                "uploads/certificat_nni"
-            );
-
-            if ($certificat !== "") {
-                $data["certificat_nni"] = $certificat;
-            }
-        }
-
-        // ==========================
-        // UPDATE DATABASE
-        // ==========================
-
-        $result = $this->user->updateProfile(
-            $id,
-            $data
+        $data["photo"] = $this->replaceFile(
+            "photo",
+            "uploads/photos",
+            $currentUser["photo"] ?? ""
         );
 
-        if ($result) {
-            $updatedUser = $this->user->findById($id);
+        $data["cv"] = $this->replaceFile(
+            "cv",
+            "uploads/cv",
+            $currentUser["cv"] ?? ""
+        );
 
-            if (!$updatedUser) {
-                echo json_encode([
-                    "success" => false,
-                    "message" => "Profil mis à jour, mais impossible de relire l'utilisateur."
-                ]);
-                return;
-            }
+        $data["fichier_piece_identite"] = $this->replaceFile(
+            "piece_identite",
+            "uploads/piece_identite",
+            $currentUser["fichier_piece_identite"] ?? ""
+        );
+
+        $data["certificat_nni"] = $this->replaceFile(
+            "certificat_nni",
+            "uploads/certificat_nni",
+            $currentUser["certificat_nni"] ?? ""
+        );
+
+        $result = $this->user->updateProfile($id, $data);
+
+        if ($result) {
+            // On renvoie le user à jour pour que le frontend
+            // rafraîchisse son cache local (AuthContext) avec les
+            // bons chemins de fichiers.
+            $updatedUser = $this->user->getById($id);
+            unset($updatedUser["mot_de_passe"]);
 
             echo json_encode([
                 "success" => true,
                 "message" => "Profil mis à jour avec succès.",
                 "user" => $updatedUser
             ]);
-
         } else {
-
             echo json_encode([
                 "success" => false,
                 "message" => "Erreur lors de la mise à jour du profil."
@@ -442,152 +250,244 @@ class UserController
     }
 
     // ==========================
-    // UPLOAD FICHIER
+    // CHANGER LE MOT DE PASSE
+    // ==========================
+    public function changePassword()
+    {
+        header("Content-Type: application/json");
+
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (
+            !$data ||
+            empty($data["id"]) ||
+            empty($data["current_password"]) ||
+            empty($data["new_password"])
+        ) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Champs manquants."
+            ]);
+            return;
+        }
+
+        $id = $data["id"];
+        $currentPassword = $data["current_password"];
+        $newPassword = $data["new_password"];
+
+        $currentUser = $this->user->getById($id);
+
+        if (!$currentUser) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Utilisateur introuvable."
+            ]);
+            return;
+        }
+
+        // Vérifier que le mot de passe actuel est correct
+        if (!password_verify($currentPassword, $currentUser["mot_de_passe"])) {
+            echo json_encode([
+                "success" => false,
+                "field" => "currentPassword",
+                "message" => "Mot de passe actuel incorrect."
+            ]);
+            return;
+        }
+
+        $result = $this->user->changePassword($id, $newPassword);
+
+        if ($result) {
+            echo json_encode([
+                "success" => true,
+                "message" => "Mot de passe modifié avec succès."
+            ]);
+        } else {
+            echo json_encode([
+                "success" => false,
+                "message" => "Erreur lors du changement de mot de passe."
+            ]);
+        }
+    }
+
+    // ==========================
+    // Remplace un fichier : si un nouveau fichier est envoyé pour
+    // ce champ, on supprime l'ancien du disque et on retourne le
+    // nouveau chemin. Sinon, on retourne l'ancien chemin inchangé.
+    // ==========================
+    private function replaceFile($field, $folder, $oldPath)
+    {
+        // Aucun nouveau fichier envoyé -> on garde l'ancien
+        if (
+            !isset($_FILES[$field]) ||
+            $_FILES[$field]["error"] !== UPLOAD_ERR_OK ||
+            $_FILES[$field]["size"] === 0
+        ) {
+            return $oldPath;
+        }
+
+        // Un nouveau fichier est envoyé -> on upload le nouveau
+        $newPath = $this->uploadFile($field, $folder);
+
+        if ($newPath === "") {
+            // L'upload a échoué, on garde l'ancien fichier
+            return $oldPath;
+        }
+
+        // Upload réussi : on supprime l'ancien fichier physique
+        // (si un chemin existait et que le fichier existe encore)
+        if (!empty($oldPath) && file_exists($oldPath)) {
+            if (!@unlink($oldPath)) {
+                error_log(
+                    "replaceFile: impossible de supprimer l'ancien fichier '$oldPath'"
+                );
+            } else {
+                error_log("replaceFile: ancien fichier supprimé '$oldPath'");
+            }
+        }
+
+        return $newPath;
+    }
+
+    // ==========================
+    // Upload d'un fichier
     // ==========================
     private function uploadFile($field, $folder)
     {
         if (!isset($_FILES[$field])) {
-
-            error_log(
-                "uploadFile : champ '$field' absent"
-            );
-
+            error_log("uploadFile: champ '$field' absent de \$_FILES");
             return "";
         }
 
         if ($_FILES[$field]["error"] !== UPLOAD_ERR_OK) {
-
             error_log(
-                "uploadFile : erreur '$field' code = " .
+                "uploadFile: erreur upload pour '$field' - code " .
                 $_FILES[$field]["error"]
             );
-
             return "";
         }
 
-        if (
-            !isset($_FILES[$field]["tmp_name"]) ||
-            !is_uploaded_file($_FILES[$field]["tmp_name"])
-        ) {
-            error_log(
-                "uploadFile : fichier temporaire invalide pour '$field'"
-            );
-
-            return "";
+        // Créer le dossier s'il n'existe pas
+        if (!is_dir($folder)) {
+            mkdir($folder, 0777, true);
         }
 
-        // ==========================
-        // Créer dossier
-        // ==========================
-
-        $relativeFolder = trim(
-            str_replace("\\", "/", $folder),
-            "/"
+        $extension = pathinfo(
+            $_FILES[$field]["name"],
+            PATHINFO_EXTENSION
         );
 
-        $basePublicPath = realpath(__DIR__ . "/../public");
-
-        if (!$basePublicPath) {
-            error_log("uploadFile : dossier public introuvable");
-            return "";
-        }
-
-        $absoluteFolder =
-            $basePublicPath .
-            DIRECTORY_SEPARATOR .
-            str_replace("/", DIRECTORY_SEPARATOR, $relativeFolder);
-
-        if (!is_dir($absoluteFolder)) {
-
-            mkdir(
-                $absoluteFolder,
-                0777,
-                true
-            );
-        }
-
-        // ==========================
-        // Extension
-        // ==========================
-
-        $extension = strtolower(
-            pathinfo(
-                $_FILES[$field]["name"],
-                PATHINFO_EXTENSION
-            )
-        );
-
-        if ($extension === "") {
-            $extension = $this->extensionFromMimeType(
-                $_FILES[$field]["type"] ?? ""
-            );
-        }
-
-        if ($extension === "") {
-            error_log(
-                "uploadFile : extension inconnue pour '$field'"
-            );
-
-            return "";
-        }
-
-        // ==========================
         // Nom unique
-        // ==========================
+        $filename = uniqid() . "_" . time() . "." . $extension;
 
-        $filename =
-            uniqid() .
-            "_" .
-            time() .
-            "." .
-            $extension;
-
-        $absoluteDestination =
-            $absoluteFolder .
-            DIRECTORY_SEPARATOR .
-            $filename;
-
-        $relativeDestination =
-            $relativeFolder .
-            "/" .
-            $filename;
-
-        // ==========================
-        // Déplacer fichier
-        // ==========================
+        $destination = $folder . "/" . $filename;
 
         if (
             move_uploaded_file(
                 $_FILES[$field]["tmp_name"],
-                $absoluteDestination
+                $destination
             )
         ) {
-
-            error_log(
-                "Fichier '$field' enregistré : " .
-                $relativeDestination
-            );
-
-            return $relativeDestination;
+            // On enregistre le chemin relatif (ex: "uploads/photos/xxx.jpg")
+            // tel quel, il sera directement utilisable comme URL publique :
+            // http://IP:8000/uploads/photos/xxx.jpg
+            return $destination;
         }
 
-        error_log(
-            "uploadFile : move_uploaded_file a échoué pour '$field'"
-        );
-
+        error_log("uploadFile: move_uploaded_file a échoué pour '$field'");
         return "";
     }
 
-    private function extensionFromMimeType($mimeType)
+    // ==========================
+    // RÉCUPÉRER LE STATUT DU DOSSIER DE L'UTILISATEUR
+    // Attend en GET : ?action=user_status&id=X
+    // ==========================
+    public function getUserStatus()
     {
-        $extensions = [
-            "image/jpeg" => "jpg",
-            "image/png" => "png",
-            "image/webp" => "webp",
-            "image/gif" => "gif",
-            "application/pdf" => "pdf",
-        ];
+        header("Content-Type: application/json");
 
-        return $extensions[$mimeType] ?? "";
+        $id = $_GET["id"] ?? null;
+
+        if (!$id) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Identifiant utilisateur manquant."
+            ]);
+            return;
+        }
+
+        $user = $this->user->getById($id);
+
+        if (!$user) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Utilisateur introuvable."
+            ]);
+            return;
+        }
+
+        $rawStatut = strtolower(trim($user["statut_dossier"] ?? "en_attente"));
+        $normStatut = in_array($rawStatut, ["accepte", "acceptee", "accepter", "accepté", "acceptée", "accepted"])
+            ? "accepte"
+            : (in_array($rawStatut, ["refuse", "refusee", "refuser", "refusé", "refusée", "rejected"])
+                ? "refuse"
+                : "en_attente");
+
+        echo json_encode([
+            "success" => true,
+            "statut_dossier" => $normStatut,
+            "raw_statut" => $user["statut_dossier"],
+            "motif_refus" => $user["motif_refus"] ?? null
+        ]);
+    }
+
+    // ==========================
+    // METTRE À JOUR LE STATUT DU DOSSIER (Admin)
+    // Attend en POST (JSON) : id, statut_dossier, motif_refus (optionnel)
+    // ==========================
+    public function updateDossierStatus()
+    {
+        header("Content-Type: application/json");
+
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        $id = $data["id"] ?? null;
+        $statut = $data["statut_dossier"] ?? $data["statut"] ?? null;
+        $motif = $data["motif_refus"] ?? null;
+
+        if (!$id || !$statut) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Identifiant utilisateur ou statut manquant."
+            ]);
+            return;
+        }
+
+        $validStatuts = ["en_attente", "accepte", "refuse"];
+        if (!in_array($statut, $validStatuts)) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Statut invalide. Choisir entre en_attente, accepte, ou refuse."
+            ]);
+            return;
+        }
+
+        $result = $this->user->updateDossierStatus($id, $statut, $motif);
+
+        if ($result) {
+            $updatedUser = $this->user->getById($id);
+            unset($updatedUser["mot_de_passe"]);
+
+            echo json_encode([
+                "success" => true,
+                "message" => "Statut du dossier mis à jour avec succès.",
+                "user" => $updatedUser
+            ]);
+        } else {
+            echo json_encode([
+                "success" => false,
+                "message" => "Erreur lors de la mise à jour du statut du dossier."
+            ]);
+        }
     }
 }

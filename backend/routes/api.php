@@ -1,8 +1,14 @@
 <?php
 
 require_once "../controllers/UserController.php";
+require_once "../controllers/OffreController.php";
+require_once "../controllers/CategorieController.php";
+require_once "../controllers/CandidatureController.php";
 
 $controller = new UserController();
+$offreController = new OffreController();
+$categorieController = new CategorieController();
+$candidatureController = new CandidatureController();
 
 $action = $_GET["action"] ?? "";
 
@@ -12,20 +18,60 @@ switch($action){
         $controller->login();
         break;
 
-    case "forgot_password":
-        $controller->forgotPassword();
-        break;
-
-    case "reset_password":
-        $controller->resetPassword();
-        break;
-
     case "register":
         $controller->register();
         break;
 
     case "update_profile":
         $controller->updateProfile();
+        break;
+
+    case "change_password":
+        $controller->changePassword();
+        break;
+
+    case "user_status":
+        $controller->getUserStatus();
+        break;
+
+    case "update_dossier_status":
+        $controller->updateDossierStatus();
+        break;
+
+    case "offres":
+        $offreController->list();
+        break;
+
+    case "offre_detail":
+        $offreController->detail();
+        break;
+
+    case "categories":
+        $categorieController->list();
+        break;
+
+    case "postuler":
+        $candidatureController->postuler();
+        break;
+
+    case "check_candidature":
+        $candidatureController->checkCandidature();
+        break;
+
+    case "mes_candidatures":
+        $candidatureController->mesCandidatures();
+        break;
+
+    case "update_candidature_status":
+        $candidatureController->updateStatus();
+        break;
+
+    case "annuler_candidature":
+        $candidatureController->annulerCandidature();
+        break;
+
+    case "notifications":
+        $candidatureController->getNotifications();
         break;
 
     default:

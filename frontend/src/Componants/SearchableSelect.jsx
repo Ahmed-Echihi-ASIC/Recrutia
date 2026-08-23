@@ -9,6 +9,9 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../Context/ThemeContext";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SearchableSelect({
   label,
@@ -17,11 +20,12 @@ export default function SearchableSelect({
   onSelect,
   icon,
 }) {
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState("");
 
   const filteredData = data.filter((item) =>
-    item.label.toLowerCase().includes(search.toLowerCase())
+    (item.label || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const selectedLabel =
@@ -29,41 +33,56 @@ export default function SearchableSelect({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {label && <Text style={[styles.label, { color: colors.subText }]}>{label}</Text>}
 
       <TouchableOpacity
-        style={styles.select}
+        style={[
+          styles.select,
+          {
+            backgroundColor: colors.inputBg || colors.card || "#FFFFFF",
+            borderColor: colors.inputBorder || colors.border || "#E5E7EB",
+          },
+        ]}
         onPress={() => setVisible(true)}
+        activeOpacity={0.7}
       >
         <Ionicons
-          name={icon || "chevron-down-outline"}
-          size={22}
-          color="#666"
+          name={icon || "search-outline"}
+          size={20}
+          color={colors.subText || "#777"}
         />
 
         <Text
           style={[
             styles.value,
-            !selectedLabel && { color: "#999" },
+            { color: selectedLabel ? colors.inputText || colors.text : colors.placeholder || "#9CA3AF" },
           ]}
         >
-          {selectedLabel || "Sélectionner"}
+          {selectedLabel || "Sélectionner..."}
         </Text>
 
         <Ionicons
           name="chevron-down-outline"
-          size={22}
-          color="#666"
+          size={20}
+          color={colors.subText || "#777"}
         />
       </TouchableOpacity>
 
-      <Modal visible={visible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>{label}</Text>
+      <Modal visible={visible} animationType="slide" statusBarTranslucent={true} onRequestClose={() => setVisible(false)}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.modalBg || colors.background }]}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{label || "Sélectionner"}</Text>
 
           <TextInput
             placeholder="Rechercher..."
-            style={styles.searchInput}
+            placeholderTextColor={colors.placeholder}
+            style={[
+              styles.searchInput,
+              {
+                backgroundColor: colors.inputBg || colors.card,
+                color: colors.inputText || colors.text,
+                borderColor: colors.inputBorder || colors.border,
+              },
+            ]}
             value={search}
             onChangeText={setSearch}
           />
@@ -74,14 +93,14 @@ export default function SearchableSelect({
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.item}
+                style={[styles.item, { borderBottomColor: colors.border }]}
                 onPress={() => {
                   onSelect(item.value);
                   setVisible(false);
                   setSearch("");
                 }}
               >
-                <Text style={styles.itemText}>{item.label}</Text>
+                <Text style={[styles.itemText, { color: colors.text }]}>{item.label}</Text>
               </TouchableOpacity>
             )}
           />
@@ -95,7 +114,7 @@ export default function SearchableSelect({
           >
             <Text style={styles.closeText}>Fermer</Text>
           </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -104,78 +123,72 @@ export default function SearchableSelect({
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
-    marginBottom: 18,
+    marginBottom: 16,
   },
 
   label: {
     marginBottom: 6,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#555",
   },
 
   select: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    height: 55,
-    backgroundColor: "#fff",
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 52,
   },
 
   value: {
     flex: 1,
     marginHorizontal: 10,
-    fontSize: 16,
-    color: "#222",
+    fontSize: 15,
   },
 
   modalContainer: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#fff",
+    paddingTop: 45,
   },
 
   modalTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
   },
 
   searchInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
+    borderWidth: 1.5,
+    borderRadius: 12,
     paddingHorizontal: 15,
     height: 50,
     marginBottom: 15,
-    fontSize: 16,
+    fontSize: 15,
   },
 
   item: {
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
 
   itemText: {
-    fontSize: 16,
+    fontSize: 15,
   },
 
   closeButton: {
     backgroundColor: "darkorange",
-    borderRadius: 10,
-    paddingVertical: 15,
+    borderRadius: 12,
+    paddingVertical: 14,
     marginTop: 15,
   },
 
   closeText: {
     color: "#fff",
     textAlign: "center",
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

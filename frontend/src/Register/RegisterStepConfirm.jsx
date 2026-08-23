@@ -1,16 +1,17 @@
-import { View, StyleSheet, Text, ScrollView } from "react-native";
-import { StatusBar } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, Text, ScrollView, StatusBar, Platform, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 import HeaderMenu from "../Componants/HeaderMenu";
 import CustomInput from "../Componants/CustomInput";
 import CustomSelect from "../Componants/CustomSelect";
 import NextButton from "../Componants/NextButton";
 import BackButton from "../Componants/BackButton";
-
+import StepProgressBar from "../Componants/StepProgressBar";
 import SelectData from "../Data/SelectData";
 import RegisterStepConfirmValidation from "../Validation/RegisterStepConfirmValidation";
+import { useTheme } from "../Context/ThemeContext";
 
 export default function RegisterStepConfirm({
   form,
@@ -18,6 +19,7 @@ export default function RegisterStepConfirm({
   onRegister,
   onBack,
 }) {
+  const { colors } = useTheme();
   const [errors, setErrors] = useState({});
 
   const handleSubmit = () => {
@@ -32,26 +34,34 @@ export default function RegisterStepConfirm({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <StatusBar barStyle={colors.isDark ? "light-content" : "dark-content"} />
+
+      <HeaderMenu
+        showBack={true}
+        onBack={onBack}
+        title="Validation finale"
+        showLogo={false}
+        showNotification={false}
+      />
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <StatusBar barStyle="dark-content" />
-
-        <HeaderMenu onMenu={() => console.log("Menu")} />
-
-        <Text style={styles.title}>Inscription</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+        <StepProgressBar currentStep={4} totalSteps={4} />
 
         <CustomInput
           label="Lieu de naissance"
           value={form.lieuNaissance}
-          onChangeText={(text) =>
-            setForm({ ...form, lieuNaissance: text })
-          }
+          onChangeText={(text) => setForm({ ...form, lieuNaissance: text })}
           icon="location-outline"
         />
-
         {errors.lieuNaissance && (
           <Text style={styles.error}>{errors.lieuNaissance}</Text>
         )}
@@ -59,64 +69,78 @@ export default function RegisterStepConfirm({
         <CustomSelect
           label="Situation familiale"
           value={form.situationFamiliale}
-          onValueChange={(value) =>
-            setForm({ ...form, situationFamiliale: value })
-          }
-          icon="people-outline"
+          onValueChange={(value) => setForm({ ...form, situationFamiliale: value })}
+          icon="heart-outline"
           items={SelectData.situation_familiale}
         />
-
         {errors.situationFamiliale && (
-          <Text style={styles.error}>
-            {errors.situationFamiliale}
-          </Text>
+          <Text style={styles.error}>{errors.situationFamiliale}</Text>
         )}
 
         <CustomSelect
-          label="Nombre d'enfant"
+          label="Nombre d'enfants"
           value={form.nombreEnfant}
-          onValueChange={(value) =>
-            setForm({ ...form, nombreEnfant: value })
-          }
-          icon="people-circle-outline"
+          onValueChange={(value) => setForm({ ...form, nombreEnfant: value })}
+          icon="people-outline"
           items={SelectData.nombre_enfant}
         />
-
         {errors.nombreEnfant && (
           <Text style={styles.error}>{errors.nombreEnfant}</Text>
         )}
 
         <CustomInput
-          label="Adresse"
+          label="Adresse de résidence"
           value={form.adresse}
-          onChangeText={(text) =>
-            setForm({ ...form, adresse: text })
-          }
+          onChangeText={(text) => setForm({ ...form, adresse: text })}
           icon="home-outline"
         />
-
-        {errors.adresse && (
-          <Text style={styles.error}>{errors.adresse}</Text>
-        )}
+        {errors.adresse && <Text style={styles.error}>{errors.adresse}</Text>}
 
         <CustomSelect
           label="Arrondissement / Sous-préfecture"
           value={form.arrondissement}
-          onValueChange={(value) =>
-            setForm({ ...form, arrondissement: value })
-          }
+          onValueChange={(value) => setForm({ ...form, arrondissement: value })}
           icon="map-outline"
           items={SelectData.arrondissement_sous_prefecture}
         />
-
         {errors.arrondissement && (
           <Text style={styles.error}>{errors.arrondissement}</Text>
         )}
 
-        <NextButton onPress={handleSubmit} />
+        {/* Card récapitulative des informations */}
+        <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.summaryHeader}>
+            <Ionicons name="checkmark-done-circle-outline" size={24} color="darkorange" />
+            <Text style={[styles.summaryTitle, { color: colors.text }]}>
+              Récapitulatif de votre inscription
+            </Text>
+          </View>
 
+          <Text style={[styles.summaryRowText, { color: colors.subText }]}>
+            <Text style={{ fontWeight: "bold", color: colors.text }}>Nom & Prénom : </Text>
+            {form.prenom} {form.nom}
+          </Text>
+
+          <Text style={[styles.summaryRowText, { color: colors.subText }]}>
+            <Text style={{ fontWeight: "bold", color: colors.text }}>Email : </Text>
+            {form.email}
+          </Text>
+
+          <Text style={[styles.summaryRowText, { color: colors.subText }]}>
+            <Text style={{ fontWeight: "bold", color: colors.text }}>Téléphone : </Text>
+            {form.telephone}
+          </Text>
+
+          <Text style={[styles.summaryRowText, { color: colors.subText }]}>
+            <Text style={{ fontWeight: "bold", color: colors.text }}>Diplôme : </Text>
+            {form.diplome || "Non renseigné"}
+          </Text>
+        </View>
+
+        <NextButton title="Créer mon compte" onPress={handleSubmit} />
         <BackButton onPress={onBack} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -124,25 +148,42 @@ export default function RegisterStepConfirm({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
-
   content: {
-    paddingBottom: 30,
+    paddingBottom: 40,
   },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 30,
-  },
-
   error: {
-    color: "red",
+    color: "#DC2626",
     fontSize: 13,
     marginHorizontal: 20,
-    marginTop: -12,
-    marginBottom: 10,
+    marginTop: -10,
+    marginBottom: 12,
+  },
+  summaryCard: {
+    marginHorizontal: 20,
+    marginVertical: 16,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+  },
+  summaryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  summaryTitle: {
+    fontSize: 15,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  summaryRowText: {
+    fontSize: 13,
+    marginBottom: 6,
+    lineHeight: 18,
   },
 });

@@ -1,163 +1,97 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
+  StatusBar,
   Platform,
+  Alert,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-
 import CustomInput from "../Componants/CustomInput";
 import CustomSelect from "../Componants/CustomSelect";
-import FilePickerButton from "../Componants/FilePickerButton";
 import DateOfBirthPicker from "../Componants/DateOfBirthPicker";
+import FilePickerButton from "../Componants/FilePickerButton";
 import HeaderMenu from "../Componants/HeaderMenu";
+import SideMenuModal from "../Componants/SideMenuModal";
 import NextButton from "../Componants/NextButton";
 import BackButton from "../Componants/BackButton";
-
 import SelectData from "../Data/SelectData";
 import { useAuth } from "../Context/AuthContext";
+import { useTheme } from "../Context/ThemeContext";
+import { SERVER_URL } from "../Config/config";
 
-const SERVER_URL = "http://192.168.100.34:8000";
-
-const extensionFromMimeType = (mimeType) => {
-  const extensions = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/gif": "gif",
-    "application/pdf": "pdf",
-  };
-
-  return extensions[mimeType] || "jpg";
-};
-
+// ==========================
+// Helper pour l'envoi de fichiers
+// ==========================
 const appendFile = (formData, fieldName, fileObj, defaultType) => {
   if (!fileObj) return;
 
-  const mimeType = fileObj.mimeType || defaultType;
-  const fallbackName = `${fieldName}.${extensionFromMimeType(mimeType)}`;
-  const fileName = fileObj.name || fallbackName;
-
   if (Platform.OS === "web" && fileObj.file) {
-    formData.append(fieldName, fileObj.file, fileName);
-    return;
+    formData.append(fieldName, fileObj.file, fileObj.name);
+  } else if (fileObj.uri) {
+    formData.append(fieldName, {
+      uri: fileObj.uri,
+      name: fileObj.name,
+      type: fileObj.mimeType || defaultType,
+    });
   }
-
-  formData.append(fieldName, {
-    uri: fileObj.uri,
-    name: fileName,
-    type: mimeType,
-  });
 };
-
-const toFormValue = (value) =>
-  value === null || value === undefined ? "" : String(value);
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
   const { user, updateUser } = useAuth();
+  const { colors, t } = useTheme();
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   const [form, setForm] = useState({
-    diplome: toFormValue(user?.diplome),
-    nom: toFormValue(user?.nom),
-    prenom: toFormValue(user?.prenom),
+    nom: user?.nom || "",
+    prenom: user?.prenom || "",
+    email: user?.email || "",
+    telephone: user?.telephone || "",
 
-    nni: toFormValue(user?.numero_national),
+    date_naissance: user?.date_naissance || "",
+    lieu_naissance: user?.lieu_naissance || "",
+    region: user?.region || "",
+    ville: user?.ville || "",
+    arrondissement: user?.arrondissement || "",
+    adresse: user?.adresse || "",
 
-    dateNaissance: toFormValue(user?.date_naissance),
-    lieuNaissance: toFormValue(user?.lieu_naissance),
+    situation_familiale: user?.situation_familiale || "",
+    nombre_enfants: user?.nombre_enfants || "",
 
-    region: toFormValue(user?.region),
-    ville: toFormValue(user?.ville),
-    arrondissement: toFormValue(user?.arrondissement),
-    adresse: toFormValue(user?.adresse),
+    diplome: user?.diplome || "",
+    niveau_etude: user?.niveau_etude || "",
+    specialite: user?.specialite || "",
+    condition_physique: user?.condition_physique || "",
+    nombre_experiences: user?.nombre_experiences || "",
+    duree_experience: user?.duree_experience || "",
 
-    telephone: toFormValue(user?.telephone),
-    email: toFormValue(user?.email),
+    numero_national: user?.numero_national || "",
+    type_piece_identite: user?.type_piece_identite || "",
+    numero_piece_identite: user?.numero_piece_identite || "",
+    date_expiration_piece: user?.date_expiration_piece || "",
 
-    situationFamiliale:
-      toFormValue(user?.situation_familiale),
-
-    nombreEnfant:
-      toFormValue(user?.nombre_enfants),
-
-    nombreDiplome:
-      toFormValue(user?.nombre_diplomes),
-
-    NiveauEtude:
-      toFormValue(user?.niveau_etude),
-
-    specialite:
-      toFormValue(user?.specialite),
-
-    ConditionPhysique:
-      toFormValue(user?.condition_physique),
-
-    NbrExperience:
-      toFormValue(user?.nombre_experiences),
-
-    DureeExperience:
-      toFormValue(user?.duree_experience),
-
-    typePiece:
-      toFormValue(user?.type_piece_identite),
-
-    numeroPiece:
-      toFormValue(user?.numero_piece_identite),
-
-    dateExpiration:
-      toFormValue(user?.date_expiration_piece),
-
-    // Nouveau fichier sélectionné
     cv: null,
     photo: null,
-    pieceIdentite: null,
-    certificatNNI: null,
+    piece_identite: null,
+    certificat_nni: null,
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const updateField = (field, value) => {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  };
-
   const handleSave = async () => {
-    if (!user?.id) {
-      Alert.alert(
-        "Session expirée",
-        "Veuillez vous reconnecter avant de modifier votre profil."
-      );
-      return;
-    }
-
     const validationErrors = {};
-
-    if (!form.nom.trim()) {
-      validationErrors.nom = "Le nom est obligatoire";
-    }
-
-    if (!form.prenom.trim()) {
-      validationErrors.prenom =
-        "Le prénom est obligatoire";
-    }
-
-    if (!form.email.trim()) {
-      validationErrors.email =
-        "L'email est obligatoire";
-    }
-
-    if (!form.telephone.trim()) {
-      validationErrors.telephone =
-        "Le téléphone est obligatoire";
-    }
+    if (!form.nom) validationErrors.nom = "Le nom est obligatoire";
+    if (!form.prenom) validationErrors.prenom = "Le prénom est obligatoire";
+    if (!form.email) validationErrors.email = "L'email est obligatoire";
+    if (!form.telephone)
+      validationErrors.telephone = "Le téléphone est obligatoire";
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -170,154 +104,53 @@ export default function EditProfileScreen() {
     try {
       const formData = new FormData();
 
-      formData.append("id", String(user.id));
-
-      // ==========================
-      // INFORMATIONS
-      // ==========================
-
+      formData.append("id", user.id);
       formData.append("nom", form.nom);
       formData.append("prenom", form.prenom);
       formData.append("email", form.email);
+      formData.append("telephone", form.telephone);
 
-      formData.append(
-        "date_naissance",
-        form.dateNaissance || ""
-      );
+      formData.append("date_naissance", form.date_naissance);
+      formData.append("lieu_naissance", form.lieu_naissance);
+      formData.append("region", form.region);
+      formData.append("ville", form.ville);
+      formData.append("arrondissement", form.arrondissement);
+      formData.append("adresse", form.adresse);
 
-      formData.append(
-        "lieu_naissance",
-        form.lieuNaissance || ""
-      );
+      formData.append("situation_familiale", form.situation_familiale);
+      formData.append("nombre_enfants", form.nombre_enfants);
 
-      formData.append(
-        "region",
-        form.region || ""
-      );
+      formData.append("diplome", form.diplome);
+      formData.append("niveau_etude", form.niveau_etude);
+      formData.append("specialite", form.specialite);
+      formData.append("condition_physique", form.condition_physique);
+      formData.append("nombre_experiences", form.nombre_experiences);
+      formData.append("duree_experience", form.duree_experience);
 
-      formData.append(
-        "ville",
-        form.ville || ""
-      );
-
-      formData.append(
-        "arrondissement",
-        form.arrondissement || ""
-      );
-
-      formData.append(
-        "adresse",
-        form.adresse || ""
-      );
-
-      formData.append(
-        "telephone",
-        form.telephone || ""
-      );
-
-      formData.append(
-        "situation_familiale",
-        form.situationFamiliale || ""
-      );
-
-      formData.append(
-        "nombre_enfants",
-        form.nombreEnfant || ""
-      );
-
-      // ==========================
-      // PARCOURS
-      // ==========================
-
-      formData.append(
-        "diplome",
-        form.diplome || ""
-      );
-
-      formData.append(
-        "nombre_diplomes",
-        form.nombreDiplome || ""
-      );
-
-      formData.append(
-        "niveau_etude",
-        form.NiveauEtude || ""
-      );
-
-      formData.append(
-        "specialite",
-        form.specialite || ""
-      );
-
-      formData.append(
-        "condition_physique",
-        form.ConditionPhysique || ""
-      );
-
-      formData.append(
-        "nombre_experiences",
-        form.NbrExperience || ""
-      );
-
-      formData.append(
-        "duree_experience",
-        form.DureeExperience || ""
-      );
-
-      // ==========================
-      // IDENTIFICATION
-      // ==========================
-
-      formData.append(
-        "numero_national",
-        form.nni || ""
-      );
-
-      formData.append(
-        "type_piece_identite",
-        form.typePiece || ""
-      );
-
+      formData.append("numero_national", form.numero_national);
+      formData.append("type_piece_identite", form.type_piece_identite);
       formData.append(
         "numero_piece_identite",
-        form.numeroPiece || ""
+        form.numero_piece_identite
       );
-
       formData.append(
         "date_expiration_piece",
-        form.dateExpiration || ""
+        form.date_expiration_piece
       );
 
-      // ==========================
-      // FICHIERS
-      // ==========================
-
-      appendFile(formData, "cv", form.cv, "application/pdf");
       appendFile(formData, "photo", form.photo, "image/jpeg");
+      appendFile(formData, "cv", form.cv, "application/pdf");
       appendFile(
         formData,
         "piece_identite",
-        form.pieceIdentite,
+        form.piece_identite,
         "application/pdf"
       );
       appendFile(
         formData,
         "certificat_nni",
-        form.certificatNNI,
+        form.certificat_nni,
         "application/pdf"
-      );
-
-      console.log("=== MODIFICATION ===");
-      console.log("ID :", user.id);
-      console.log("CV :", form.cv);
-      console.log("PHOTO :", form.photo);
-      console.log(
-        "PIECE :",
-        form.pieceIdentite
-      );
-      console.log(
-        "CERTIFICAT :",
-        form.certificatNNI
       );
 
       const response = await fetch(
@@ -330,566 +163,398 @@ export default function EditProfileScreen() {
 
       const text = await response.text();
 
-      console.log(
-        "Réponse serveur :",
-        text
-      );
-
       let data;
-
       try {
         data = JSON.parse(text);
-      } catch (error) {
-        Alert.alert(
-          "Erreur",
-          "Réponse invalide du serveur"
-        );
+      } catch (e) {
+        Alert.alert("Erreur", "Réponse invalide du serveur");
+        setLoading(false);
         return;
       }
 
       if (data.success) {
-        if (!data.user) {
-          Alert.alert(
-            "Erreur",
-            "Le serveur n'a pas renvoyé le profil mis à jour."
-          );
-          return;
+        const updatedFields = {
+          nom: form.nom,
+          prenom: form.prenom,
+          email: form.email,
+          telephone: form.telephone,
+          date_naissance: form.date_naissance,
+          lieu_naissance: form.lieu_naissance,
+          region: form.region,
+          ville: form.ville,
+          arrondissement: form.arrondissement,
+          adresse: form.adresse,
+          situation_familiale: form.situation_familiale,
+          nombre_enfants: form.nombre_enfants,
+          diplome: form.diplome,
+          niveau_etude: form.niveau_etude,
+          specialite: form.specialite,
+          condition_physique: form.condition_physique,
+          nombre_experiences: form.nombre_experiences,
+          duree_experience: form.duree_experience,
+          numero_national: form.numero_national,
+          type_piece_identite: form.type_piece_identite,
+          numero_piece_identite: form.numero_piece_identite,
+          date_expiration_piece: form.date_expiration_piece,
+        };
+
+        if (data.user) {
+          updatedFields.photo = data.user.photo;
+          updatedFields.cv = data.user.cv;
+          updatedFields.fichier_piece_identite =
+            data.user.fichier_piece_identite;
+          updatedFields.certificat_nni = data.user.certificat_nni;
         }
 
         if (updateUser) {
-          await updateUser(data.user);
+          await updateUser(updatedFields);
         }
 
-        Alert.alert(
-          "Succès",
-          "Profil modifié avec succès"
-        );
-
+        Alert.alert("Succès", "Profil mis à jour avec succès");
         navigation.goBack();
       } else {
-        Alert.alert(
-          "Erreur",
-          data.message ||
-            "Erreur lors de la modification"
-        );
+        Alert.alert("Erreur", data.message || "Erreur lors de la mise à jour");
       }
     } catch (error) {
-      console.log(
-        "Erreur modification :",
-        error
-      );
-
-      Alert.alert(
-        "Erreur",
-        "Erreur de connexion au serveur"
-      );
+      console.log(error);
+      Alert.alert("Erreur", "Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
   };
 
-  const regions = Object.keys(
-    SelectData.villes
-  ).map((region) => ({
-    label: region,
-    value: region,
-  }));
-
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={["top"]}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <StatusBar
+        barStyle={colors.isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+
+      {/* Unique Header Title */}
+      <HeaderMenu
+        showBack={true}
+        onBack={() => navigation.goBack()}
+        onMenu={() => setIsMenuVisible(true)}
+        title={t("editProfile") || "Modifier mon profil"}
+        showLogo={false}
+        showNotification={false}
+      />
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <HeaderMenu
-          onMenu={() =>
-            console.log("Menu")
-          }
-        />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+        {/* Section 1: Informations personnelles */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SectionHeader icon="person-outline" title="Informations personnelles" colors={colors} />
 
-        <Text style={styles.title}>
-          Modifier mon profil
-        </Text>
+          <CustomInput
+            label="Nom"
+            value={form.nom}
+            onChangeText={(text) => setForm({ ...form, nom: text })}
+            icon="person-outline"
+          />
+          {errors.nom && <Text style={styles.error}>{errors.nom}</Text>}
 
-        {/* ==========================
-            INFORMATIONS PERSONNELLES
-        ========================== */}
+          <CustomInput
+            label="Prénom"
+            value={form.prenom}
+            onChangeText={(text) => setForm({ ...form, prenom: text })}
+            icon="person-outline"
+          />
+          {errors.prenom && <Text style={styles.error}>{errors.prenom}</Text>}
 
-        <Text style={styles.sectionTitle}>
-          Informations personnelles
-        </Text>
+          <CustomInput
+            label="Email"
+            value={form.email}
+            onChangeText={(text) => setForm({ ...form, email: text })}
+            icon="mail-outline"
+            keyboardType="email-address"
+          />
+          {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-        <CustomSelect
-          label="Diplôme"
-          value={form.diplome}
-          onValueChange={(value) =>
-            updateField(
-              "diplome",
-              value
-            )
-          }
-          icon="school-outline"
-          items={SelectData.diplomes}
-        />
+          <CustomInput
+            label="Téléphone"
+            value={form.telephone}
+            onChangeText={(text) => setForm({ ...form, telephone: text })}
+            icon="call-outline"
+            keyboardType="phone-pad"
+          />
+          {errors.telephone && <Text style={styles.error}>{errors.telephone}</Text>}
 
-        <CustomInput
-          label="Nom"
-          value={form.nom}
-          onChangeText={(value) =>
-            updateField("nom", value)
-          }
-          icon="person-outline"
-        />
+          <DateOfBirthPicker
+            label="Date de naissance"
+            value={form.date_naissance}
+            onChange={(date) => setForm({ ...form, date_naissance: date })}
+          />
 
-        {errors.nom && (
-          <Text style={styles.error}>
-            {errors.nom}
-          </Text>
-        )}
+          <CustomInput
+            label="Lieu de naissance"
+            value={form.lieu_naissance}
+            onChangeText={(text) => setForm({ ...form, lieu_naissance: text })}
+            icon="location-outline"
+          />
 
-        <CustomInput
-          label="Prénom"
-          value={form.prenom}
-          onChangeText={(value) =>
-            updateField(
-              "prenom",
-              value
-            )
-          }
-          icon="person-outline"
-        />
+          <CustomInput
+            label="Région"
+            value={form.region}
+            onChangeText={(text) => setForm({ ...form, region: text })}
+            icon="map-outline"
+          />
 
-        <DateOfBirthPicker
-          label="Date de naissance"
-          value={form.dateNaissance}
-          onChange={(date) =>
-            updateField(
-              "dateNaissance",
-              date
-            )
-          }
-        />
+          <CustomInput
+            label="Ville"
+            value={form.ville}
+            onChangeText={(text) => setForm({ ...form, ville: text })}
+            icon="business-outline"
+          />
 
-        <CustomInput
-          label="Lieu de naissance"
-          value={form.lieuNaissance}
-          onChangeText={(value) =>
-            updateField(
-              "lieuNaissance",
-              value
-            )
-          }
-          icon="location-outline"
-        />
+          <CustomInput
+            label="Arrondissement"
+            value={form.arrondissement}
+            onChangeText={(text) => setForm({ ...form, arrondissement: text })}
+            icon="location-outline"
+          />
 
-        <CustomInput
-          label="NNI"
-          value={form.nni}
-          onChangeText={(value) =>
-            updateField("nni", value)
-          }
-          icon="card-outline"
-        />
+          <CustomInput
+            label="Adresse"
+            value={form.adresse}
+            onChangeText={(text) => setForm({ ...form, adresse: text })}
+            icon="home-outline"
+          />
 
-        <CustomSelect
-          label="Région"
-          value={form.region}
-          onValueChange={(value) =>
-            setForm({
-              ...form,
-              region: value,
-              ville: "",
-            })
-          }
-          icon="location-outline"
-          items={regions}
-        />
+          <CustomSelect
+            label="Situation familiale"
+            value={form.situation_familiale}
+            onValueChange={(value) => setForm({ ...form, situation_familiale: value })}
+            icon="heart-outline"
+            items={SelectData.situation_familiale}
+          />
 
-        <CustomSelect
-          label="Ville"
-          value={form.ville}
-          onValueChange={(value) =>
-            updateField(
-              "ville",
-              value
-            )
-          }
-          icon="business-outline"
-          items={(
-            SelectData.villes[
-              form.region
-            ] || []
-          ).map((ville) => ({
-            label: ville,
-            value: ville,
-          }))}
-        />
+          <CustomInput
+            label="Nombre d'enfants"
+            value={String(form.nombre_enfants)}
+            onChangeText={(text) => setForm({ ...form, nombre_enfants: text })}
+            icon="people-outline"
+            keyboardType="numeric"
+          />
+        </View>
 
-        <CustomInput
-          label="Arrondissement"
-          value={form.arrondissement}
-          onChangeText={(value) =>
-            updateField(
-              "arrondissement",
-              value
-            )
-          }
-          icon="map-outline"
-        />
+        {/* Section 2: Parcours & Spécialité */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SectionHeader icon="school-outline" title="Parcours & Spécialité" colors={colors} />
 
-        <CustomInput
-          label="Adresse"
-          value={form.adresse}
-          onChangeText={(value) =>
-            updateField(
-              "adresse",
-              value
-            )
-          }
-          icon="home-outline"
-        />
+          <CustomInput
+            label="Diplôme"
+            value={form.diplome}
+            onChangeText={(text) => setForm({ ...form, diplome: text })}
+            icon="school-outline"
+          />
 
-        <CustomInput
-          label="Téléphone"
-          value={form.telephone}
-          onChangeText={(value) =>
-            updateField(
-              "telephone",
-              value
-            )
-          }
-          icon="call-outline"
-          keyboardType="phone-pad"
-        />
+          <CustomSelect
+            label="Niveau d'étude"
+            value={form.niveau_etude}
+            onValueChange={(value) => setForm({ ...form, niveau_etude: value })}
+            items={SelectData.niveau_etudes}
+          />
 
-        <CustomInput
-          label="Email"
-          value={form.email}
-          onChangeText={(value) =>
-            updateField(
-              "email",
-              value
-            )
-          }
-          icon="mail-outline"
-          keyboardType="email-address"
-        />
+          <CustomSelect
+            label="Spécialité"
+            value={form.specialite}
+            onValueChange={(value) => setForm({ ...form, specialite: value })}
+            items={SelectData.specialite}
+            icon="construct-outline"
+          />
 
-        <CustomSelect
-          label="Situation familiale"
-          value={
-            form.situationFamiliale
-          }
-          onValueChange={(value) =>
-            updateField(
-              "situationFamiliale",
-              value
-            )
-          }
-          icon="heart-outline"
-          items={
-            SelectData.situation_familiale
-          }
-        />
+          <CustomSelect
+            label="Condition physique"
+            value={form.condition_physique}
+            onValueChange={(value) => setForm({ ...form, condition_physique: value })}
+            icon="fitness-outline"
+            items={SelectData.condition_physique}
+          />
 
-        <CustomSelect
-          label="Nombre d'enfants"
-          value={form.nombreEnfant}
-          onValueChange={(value) =>
-            updateField(
-              "nombreEnfant",
-              value
-            )
-          }
-          icon="people-outline"
-          items={
-            SelectData.nombre_enfant
-          }
-        />
+          <CustomSelect
+            label="Nombre d'expériences professionnelles"
+            value={form.nombre_experiences}
+            onValueChange={(value) => setForm({ ...form, nombre_experiences: value })}
+            icon="briefcase-outline"
+            items={SelectData.nombre_experience}
+          />
 
-        {/* ==========================
-            PARCOURS
-        ========================== */}
+          <CustomSelect
+            label="Durée d'expérience professionnelle"
+            value={form.duree_experience}
+            onValueChange={(value) => setForm({ ...form, duree_experience: value })}
+            icon="time-outline"
+            items={SelectData.duree_experience}
+          />
+        </View>
 
-        <Text style={styles.sectionTitle}>
-          Parcours professionnel
-        </Text>
+        {/* Section 3: Documents professionnels */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SectionHeader icon="document-text-outline" title="Documents professionnels" colors={colors} />
 
-        <CustomSelect
-          label="Nombre de diplôme"
-          value={form.nombreDiplome}
-          onValueChange={(value) =>
-            updateField(
-              "nombreDiplome",
-              value
-            )
-          }
-          icon="school-outline"
-          items={
-            SelectData.nombreDiplomes
-          }
-        />
+          <Text style={[styles.fileLabel, { color: colors.text }]}>Importer CV (PDF)</Text>
+          <FilePickerButton
+            title="Choisir un fichier"
+            icon="cloud-upload-outline"
+            value={form.cv}
+            onChange={(file) => setForm({ ...form, cv: file })}
+          />
 
-        <CustomSelect
-          label="Niveau d'étude"
-          value={form.NiveauEtude}
-          onValueChange={(value) =>
-            updateField(
-              "NiveauEtude",
-              value
-            )
-          }
-          items={
-            SelectData.niveau_etudes
-          }
-        />
+          <Text style={[styles.fileLabel, { color: colors.text }]}>Importer Photo de profil</Text>
+          <FilePickerButton
+            title="Choisir une image"
+            icon="camera-outline"
+            value={form.photo}
+            onChange={(file) => setForm({ ...form, photo: file })}
+          />
+        </View>
 
-        <CustomSelect
-          label="Spécialité"
-          value={form.specialite}
-          onValueChange={(value) =>
-            updateField(
-              "specialite",
-              value
-            )
-          }
-          icon="construct-outline"
-          items={
-            SelectData.specialite
-          }
-        />
+        {/* Section 4: Identification & Pièces */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <SectionHeader icon="card-outline" title="Identification & Pièces" colors={colors} />
 
-        <CustomSelect
-          label="Condition physique"
-          value={
-            form.ConditionPhysique
-          }
-          onValueChange={(value) =>
-            updateField(
-              "ConditionPhysique",
-              value
-            )
-          }
-          icon="fitness-outline"
-          items={
-            SelectData.condition_physique
-          }
-        />
+          <CustomInput
+            label="Numéro national d'identification (NNI)"
+            value={form.numero_national}
+            onChangeText={(text) => setForm({ ...form, numero_national: text })}
+            icon="card-outline"
+            keyboardType="numeric"
+          />
 
-        <CustomSelect
-          label="Nombre d'expériences"
-          value={form.NbrExperience}
-          onValueChange={(value) =>
-            updateField(
-              "NbrExperience",
-              value
-            )
-          }
-          icon="briefcase-outline"
-          items={
-            SelectData.nombre_experience
-          }
-        />
+          <CustomSelect
+            label="Type de pièce d'identité"
+            value={form.type_piece_identite}
+            onValueChange={(value) => setForm({ ...form, type_piece_identite: value })}
+            icon="card-outline"
+            items={SelectData.type_piece_identite}
+          />
 
-        <CustomSelect
-          label="Durée d'expérience"
-          value={
-            form.DureeExperience
-          }
-          onValueChange={(value) =>
-            updateField(
-              "DureeExperience",
-              value
-            )
-          }
-          icon="time-outline"
-          items={
-            SelectData.duree_experience
-          }
-        />
+          <CustomInput
+            label="Numéro pièce d'identité"
+            value={form.numero_piece_identite}
+            onChangeText={(text) => setForm({ ...form, numero_piece_identite: text })}
+            icon="document-text-outline"
+            keyboardType="numeric"
+          />
 
-        {/* ==========================
-            IDENTIFICATION
-        ========================== */}
+          <DateOfBirthPicker
+            label="Date d'expiration"
+            value={form.date_expiration_piece}
+            onChange={(date) => setForm({ ...form, date_expiration_piece: date })}
+          />
 
-        <Text style={styles.sectionTitle}>
-          Identification
-        </Text>
+          <Text style={[styles.fileLabel, { color: colors.text }]}>Importer Pièce d'identité</Text>
+          <FilePickerButton
+            title="Choisir un fichier"
+            icon="cloud-upload-outline"
+            value={form.piece_identite}
+            onChange={(file) => setForm({ ...form, piece_identite: file })}
+          />
 
-        <CustomSelect
-          label="Type de pièce"
-          value={form.typePiece}
-          onValueChange={(value) =>
-            updateField(
-              "typePiece",
-              value
-            )
-          }
-          icon="card-outline"
-          items={
-            SelectData.type_piece_identite
-          }
-        />
-
-        <CustomInput
-          label="Numéro de pièce"
-          value={form.numeroPiece}
-          onChangeText={(value) =>
-            updateField(
-              "numeroPiece",
-              value
-            )
-          }
-          icon="document-outline"
-        />
-
-        <DateOfBirthPicker
-          label="Date d'expiration"
-          value={form.dateExpiration}
-          onChange={(date) =>
-            updateField(
-              "dateExpiration",
-              date
-            )
-          }
-        />
-
-        {/* ==========================
-            DOCUMENTS
-        ========================== */}
-
-        <Text style={styles.sectionTitle}>
-          Documents
-        </Text>
-
-        <Text style={styles.label}>
-          CV
-        </Text>
-
-        <FilePickerButton
-          title="Choisir un CV"
-          icon="cloud-upload-outline"
-          value={form.cv}
-          onChange={(file) =>
-            updateField(
-              "cv",
-              file
-            )
-          }
-        />
-
-        <Text style={styles.label}>
-          Photo
-        </Text>
-
-        <FilePickerButton
-          title="Choisir une photo"
-          icon="camera-outline"
-          value={form.photo}
-          type="image/*"
-          onChange={(file) =>
-            updateField(
-              "photo",
-              file
-            )
-          }
-        />
-
-        <Text style={styles.label}>
-          Pièce d'identité
-        </Text>
-
-        <FilePickerButton
-          title="Choisir un fichier"
-          icon="document-outline"
-          value={
-            form.pieceIdentite
-          }
-          onChange={(file) =>
-            updateField(
-              "pieceIdentite",
-              file
-            )
-          }
-        />
-
-        <Text style={styles.label}>
-          Certificat NNI
-        </Text>
-
-        <FilePickerButton
-          title="Choisir un fichier"
-          icon="document-text-outline"
-          value={
-            form.certificatNNI
-          }
-          onChange={(file) =>
-            updateField(
-              "certificatNNI",
-              file
-            )
-          }
-        />
+          <Text style={[styles.fileLabel, { color: colors.text }]}>Importer Certificat NNI</Text>
+          <FilePickerButton
+            title="Choisir un fichier"
+            icon="cloud-upload-outline"
+            value={form.certificat_nni}
+            onChange={(file) => setForm({ ...form, certificat_nni: file })}
+          />
+        </View>
 
         <NextButton
-          title={
-            loading
-              ? "Enregistrement..."
-              : "Enregistrer"
-          }
+          title={loading ? "Enregistrement..." : "Enregistrer les modifications"}
           onPress={handleSave}
           disabled={loading}
         />
 
-        <BackButton
-          onPress={() =>
-            navigation.goBack()
-          }
-        />
+        <BackButton onPress={() => navigation.goBack()} />
       </ScrollView>
+      </KeyboardAvoidingView>
+
+      <SideMenuModal
+        visible={isMenuVisible}
+        onClose={() => setIsMenuVisible(false)}
+      />
     </SafeAreaView>
+  );
+}
+
+function SectionHeader({ icon, title, colors }) {
+  return (
+    <View style={styles.sectionHeaderRow}>
+      <View style={styles.sectionHeaderBadge}>
+        <Ionicons name={icon} size={18} color="darkorange" />
+      </View>
+      <Text style={[styles.sectionHeaderText, { color: colors.text }]}>
+        {title}
+      </Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
 
   content: {
-    paddingBottom: 30,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
 
-  title: {
-    fontSize: 28,
+  card: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingTop: 18,
+    paddingBottom: 8,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+  },
+
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+
+  sectionHeaderBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,140,0,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+
+  sectionHeaderText: {
+    fontSize: 16,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 30,
   },
 
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginHorizontal: 20,
-    marginTop: 15,
-    marginBottom: 20,
-    color: "darkorange",
-  },
-
-  label: {
+  fileLabel: {
     marginHorizontal: 20,
     marginBottom: 8,
-    fontSize: 15,
+    marginTop: 4,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#555",
   },
 
   error: {
-    color: "red",
+    color: "#DC2626",
     fontSize: 13,
     marginHorizontal: 20,
     marginTop: -12,

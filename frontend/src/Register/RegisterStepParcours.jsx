@@ -1,258 +1,176 @@
-import { View, TextInput, Button ,TouchableOpacity ,StyleSheet, Text} from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, Text, ScrollView, StatusBar, Platform, KeyboardAvoidingView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import NextButton from "../Componants/NextButton";
 import BackButton from "../Componants/BackButton";
-import { ScrollView, StatusBar } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import CustomInput from "../Componants/CustomInput";
 import FilePickerButton from "../Componants/FilePickerButton";
 import HeaderMenu from "../Componants/HeaderMenu";
-import { useState } from "react";
+import StepProgressBar from "../Componants/StepProgressBar";
 import RegisterStepParcoursValidation from "../Validation/RegisterStepParcoursValidation";
 import CustomSelect from "../Componants/CustomSelect";
-import SearchableSelect from "../Componants/SearchableSelect";
-
 import SelectData from "../Data/SelectData";
-
+import { useTheme } from "../Context/ThemeContext";
 
 export default function RegisterStepParcours({
+  form,
+  setForm,
+  onNext,
+  onBack,
+}) {
+  const { colors } = useTheme();
+  const [errors, setErrors] = useState({});
 
-    form,
-    setForm,
-    onNext,
-    onBack
-
-}){
-    const [errors, setErrors] = useState({});
-
-    const handleNext = () => {
-    const validationErrors =
-        RegisterStepParcoursValidation(form);
-
+  const handleNext = () => {
+    const validationErrors = RegisterStepParcoursValidation(form);
     if (Object.keys(validationErrors).length > 0) {
-        setErrors(validationErrors);
-        return;
+      setErrors(validationErrors);
+      return;
     }
-
     onNext();
-    };
+  };
 
-    return(
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <StatusBar barStyle={colors.isDark ? "light-content" : "dark-content"} />
 
-        <SafeAreaView
-        style={styles.container}  edges={["top"]}>
-            <ScrollView
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}>
-        
+      <HeaderMenu
+        showBack={true}
+        onBack={onBack}
+        title="Parcours Professionnel"
+        showLogo={false}
+        showNotification={false}
+      />
 
-        <StatusBar
-        barStyle="dark-content"
-        
-    />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+        <StepProgressBar currentStep={2} totalSteps={4} />
 
-        <HeaderMenu
-        onMenu={() => console.log("Menu")}
-            />
-        
-            <Text style={styles.title}>Inscription</Text>
-
-            <CustomSelect
-            label="Nombre de diplôme"
-            value={form.nombreDiplome}
-            onValueChange={(value)=>
-                setForm({...form,nombreDiplome:value})
-            }
-            icon="school-outline"
-                items={SelectData.nombreDiplomes}
-            />
-            {errors.nombreDiplome && (
-            <Text style={styles.error}>
-            {errors.SelectData.nombreDiplomes}
-            </Text>
-            )}
-
-            <CustomSelect
-            label="Niveau d'étude"
-            value={form.NiveauEtude}
-            onValueChange={(value) =>
-                setForm({ ...form, NiveauEtude: value })
-            }
-            items={SelectData.niveau_etudes}
-            />
-            
-            {errors.NiveauEtude && (
-            <Text style={styles.error}>
-            {errors.NiveauEtude}
-            </Text>
-            )}
-
-            
         <CustomSelect
-            label="Spécialité"
-            value={form.specialite}
-            onValueChange={(value) =>
-                setForm({ ...form, specialite: value })
-            }
-            items={SelectData.specialite}
-            icon="construct-outline"
-            />
+          label="Nombre de diplômes"
+          value={form.nombreDiplome}
+          onValueChange={(value) => setForm({ ...form, nombreDiplome: value })}
+          icon="school-outline"
+          items={SelectData.nombreDiplomes}
+        />
+        {errors.nombreDiplome && (
+          <Text style={styles.error}>{errors.nombreDiplome}</Text>
+        )}
 
-            {errors.specialite && (
-            <Text style={styles.error}>
-            {errors.specialite}
-            </Text>
-            )}
+        <CustomSelect
+          label="Niveau d'étude"
+          value={form.NiveauEtude}
+          onValueChange={(value) => setForm({ ...form, NiveauEtude: value })}
+          icon="ribbon-outline"
+          items={SelectData.niveau_etudes}
+        />
+        {errors.NiveauEtude && (
+          <Text style={styles.error}>{errors.NiveauEtude}</Text>
+        )}
 
-            <CustomSelect
-            label="Condition physique"
-            value={form.ConditionPhysique}
-            onValueChange={(value) =>
-            setForm({ ...form, ConditionPhysique: value })
-            }
-            icon="fitness-outline"
-            items={SelectData.condition_physique}
-            
-            />
-            {errors.ConditionPhysique && (
-            <Text style={styles.error}>
-            {errors.ConditionPhysique}
-            </Text>
-            )}
+        <CustomSelect
+          label="Spécialité"
+          value={form.specialite}
+          onValueChange={(value) => setForm({ ...form, specialite: value })}
+          items={SelectData.specialite}
+          icon="construct-outline"
+        />
+        {errors.specialite && (
+          <Text style={styles.error}>{errors.specialite}</Text>
+        )}
 
-            <CustomSelect
-  label="Nombre d'expériences professionnelles"
-  value={form.NbrExperience}
-  onValueChange={(value) =>
-    setForm({ ...form, NbrExperience: value })
-  }
-  icon="briefcase-outline"
-  items={SelectData.nombre_experience}
-/>
-            {errors.NbrExperience && (
-            <Text style={styles.error}>
-            {errors.NbrExperience}
-            </Text>
-            )}
+        <CustomSelect
+          label="Condition physique"
+          value={form.ConditionPhysique}
+          onValueChange={(value) => setForm({ ...form, ConditionPhysique: value })}
+          icon="fitness-outline"
+          items={SelectData.condition_physique}
+        />
+        {errors.ConditionPhysique && (
+          <Text style={styles.error}>{errors.ConditionPhysique}</Text>
+        )}
 
-            <CustomSelect
-  label="Durée d'expérience professionnelle"
-  value={form.DureeExperience}
-  onValueChange={(value) =>
-    setForm({ ...form, DureeExperience: value })
-  }
-  icon="time-outline"
-  items={SelectData.duree_experience}
-/>
-            {errors.DureeExperience && (
-            <Text style={styles.error}>
-            {errors.DureeExperience}
-            </Text>
-            )}
+        <CustomSelect
+          label="Nombre d'expériences professionnelles"
+          value={form.NbrExperience}
+          onValueChange={(value) => setForm({ ...form, NbrExperience: value })}
+          icon="briefcase-outline"
+          items={SelectData.nombre_experience}
+        />
+        {errors.NbrExperience && (
+          <Text style={styles.error}>{errors.NbrExperience}</Text>
+        )}
 
-    
-    
-    <Text style={styles.label}>Importer CV</Text>
+        <CustomSelect
+          label="Durée d'expérience professionnelle"
+          value={form.DureeExperience}
+          onValueChange={(value) => setForm({ ...form, DureeExperience: value })}
+          icon="time-outline"
+          items={SelectData.duree_experience}
+        />
+        {errors.DureeExperience && (
+          <Text style={styles.error}>{errors.DureeExperience}</Text>
+        )}
 
-<FilePickerButton
-  title="Choisir un fichier"
-  icon="cloud-upload-outline"
-  value={form.cv}
-  onChange={(file) => {
-    console.log("CV sélectionné :", file);
+        <Text style={[styles.sectionTitle, { color: colors.subText }]}>Documents à fournir</Text>
 
-    setForm({
-      ...form,
-      cv: file,
-    });
-  }}
-/>
+        <Text style={[styles.label, { color: colors.text }]}>Curriculum Vitae (CV)</Text>
+        <FilePickerButton
+          title="Importer votre CV (PDF)"
+          icon="document-text-outline"
+          value={form.cv}
+          onChange={(file) => setForm({ ...form, cv: file })}
+        />
 
-<Text style={styles.label}>Importer photo</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Photo de profil</Text>
+        <FilePickerButton
+          title="Importer votre photo (JPG/PNG)"
+          icon="camera-outline"
+          value={form.photo}
+          onChange={(file) => setForm({ ...form, photo: file })}
+        />
 
-<FilePickerButton
-  title="Choisir un fichier"
-  icon="camera-outline"
-  value={form.photo}
-  onChange={(file) => {
-    console.log("PHOTO sélectionnée :", file);
-
-    setForm({
-      ...form,
-      photo: file,
-    });
-  }}
-/>
-
-
-            
-            
-
-            
-            <NextButton
-            onPress={handleNext}
-                />
-                <BackButton
-                onPress={onBack}
-                />
-        </ScrollView>
-        </SafeAreaView>
-        
-
-    );
-
+        <NextButton onPress={handleNext} />
+        <BackButton onPress={onBack} />
+      </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
 
-
-const styles = StyleSheet.create({container: {
+const styles = StyleSheet.create({
+  container: {
     flex: 1,
-    backgroundColor: "#fff",
-    
-},
-error: {
-    color: "red",
+  },
+  content: {
+    paddingBottom: 40,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  error: {
+    color: "#DC2626",
     fontSize: 13,
     marginHorizontal: 20,
-    marginTop: -12,
-    marginBottom: 10,
-},
-
-title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 30,
-},
-
-input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 15,
-},
-content: {
-    paddingBottom: 25,
-},
-
-button: {
-        backgroundColor: "darkorange",
-        paddingVertical: 10,
-        borderRadius: 10,
-        alignItems: "center",
-        marginTop: 20,
-    },
-
-buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "bold",
-},
-
-label: {
-  marginHorizontal: 20,
-  marginBottom: 8,
-  fontSize: 15,
-  fontWeight: "600",
-  color: "#555",
-},
+    marginTop: -10,
+    marginBottom: 12,
+  },
+  label: {
+    marginHorizontal: 20,
+    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });
