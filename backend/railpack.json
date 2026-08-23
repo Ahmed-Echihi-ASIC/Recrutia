@@ -1,0 +1,4 @@
+{
+  "provider": "php",
+  "phpExtensions": ["pdo_pgsql", "pgsql"]
+}
