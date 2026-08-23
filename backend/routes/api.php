@@ -5,77 +5,89 @@ require_once "../controllers/OffreController.php";
 require_once "../controllers/CategorieController.php";
 require_once "../controllers/CandidatureController.php";
 
-$controller = new UserController();
-$offreController = new OffreController();
-$categorieController = new CategorieController();
-$candidatureController = new CandidatureController();
+try {
+    $controller = new UserController();
+    $offreController = new OffreController();
+    $categorieController = new CategorieController();
+    $candidatureController = new CandidatureController();
 
-$action = $_GET["action"] ?? "";
+    $action = $_GET["action"] ?? "";
 
-switch($action){
+    switch($action){
 
-    case "login":
-        $controller->login();
-        break;
+        case "login":
+            $controller->login();
+            break;
 
-    case "register":
-        $controller->register();
-        break;
+        case "register":
+            $controller->register();
+            break;
 
-    case "update_profile":
-        $controller->updateProfile();
-        break;
+        case "update_profile":
+            $controller->updateProfile();
+            break;
 
-    case "change_password":
-        $controller->changePassword();
-        break;
+        case "change_password":
+            $controller->changePassword();
+            break;
 
-    case "user_status":
-        $controller->getUserStatus();
-        break;
+        case "user_status":
+            $controller->getUserStatus();
+            break;
 
-    case "update_dossier_status":
-        $controller->updateDossierStatus();
-        break;
+        case "update_dossier_status":
+            $controller->updateDossierStatus();
+            break;
 
-    case "offres":
-        $offreController->list();
-        break;
+        case "offres":
+            $offreController->list();
+            break;
 
-    case "offre_detail":
-        $offreController->detail();
-        break;
+        case "offre_detail":
+            $offreController->detail();
+            break;
 
-    case "categories":
-        $categorieController->list();
-        break;
+        case "categories":
+            $categorieController->list();
+            break;
 
-    case "postuler":
-        $candidatureController->postuler();
-        break;
+        case "category_detail":
+            $categorieController->detail();
+            break;
 
-    case "check_candidature":
-        $candidatureController->checkCandidature();
-        break;
+        case "postuler":
+            $candidatureController->postuler();
+            break;
 
-    case "mes_candidatures":
-        $candidatureController->mesCandidatures();
-        break;
+        case "check_candidature":
+            $candidatureController->checkCandidature();
+            break;
 
-    case "update_candidature_status":
-        $candidatureController->updateStatus();
-        break;
+        case "mes_candidatures":
+            $candidatureController->mesCandidatures();
+            break;
 
-    case "annuler_candidature":
-        $candidatureController->annulerCandidature();
-        break;
+        case "update_candidature_status":
+            $candidatureController->updateStatus();
+            break;
 
-    case "notifications":
-        $candidatureController->getNotifications();
-        break;
+        case "annuler_candidature":
+            $candidatureController->annulerCandidature();
+            break;
 
-    default:
-        echo json_encode([
-            "message"=>"API Recrutia"
-        ]);
+        case "notifications":
+            $candidatureController->getNotifications();
+            break;
+
+        default:
+            echo json_encode([
+                "message"=>"API Recrutia"
+            ]);
+    }
+} catch (Throwable $e) {
+    header("Content-Type: application/json");
+    echo json_encode([
+        "success" => false,
+        "message" => $e->getMessage()
+    ]);
 }

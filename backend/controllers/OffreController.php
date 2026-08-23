@@ -18,15 +18,18 @@ class OffreController
     }
 
     // ==========================
-    // LISTE DES OFFRES (pour l'écran d'accueil)
-    // Attend optionnellement ?candidat_id=X
+    // LISTE DES OFFRES (avec Matching & Recommandation par règles)
+    // Attend optionnellement ?candidat_id=X&categorie_id=Y&search=Z&page=P&limit=L
     // ==========================
     public function list()
     {
         header("Content-Type: application/json");
 
         $candidatId = $_GET["candidat_id"] ?? $_GET["user_id"] ?? null;
+        $categorieId = $_GET["categorie_id"] ?? $_GET["category_id"] ?? null;
+        $search = $_GET["search"] ?? $_GET["q"] ?? null;
 
+        $user = null;
         if ($candidatId) {
             $user = $this->userModel->getById($candidatId);
             if ($user) {
@@ -47,30 +50,25 @@ class OffreController
         $page = isset($_GET["page"]) ? (int)$_GET["page"] : null;
         $limit = isset($_GET["limit"]) ? (int)$_GET["limit"] : null;
 
-        if ($page !== null || $limit !== null) {
-            $page = $page ? max(1, $page) : 1;
-            $limit = $limit ? max(1, $limit) : 10;
-            $offres = $this->offre->getAll($page, $limit);
-            $total = $this->offre->getTotalCount();
-            $hasMore = ($page * $limit) < $total;
-
-            echo json_encode([
-                "success" => true,
-                "statut_dossier" => "accepte",
-                "page" => $page,
-                "limit" => $limit,
-                "total" => $total,
-                "has_more" => $hasMore,
-                "offres" => $offres
-            ]);
+        if ($user) {
+            $offres = $this->offre->getMatchedOffresForCandidat($user, $page, $limit, $categorieId, $search);
         } else {
-            $offres = $this->offre->getAll();
-            echo json_encode([
-                "success" => true,
-                "statut_dossier" => "accepte",
-                "offres" => $offres
-            ]);
+            $offres = $this->offre->getAll($page, $limit);
         }
+
+        $total = $this->offre->getTotalCount();
+        $hasMore = ($page !== null && $limit !== null) ? (($page * $limit) < $total) : false;
+
+        echo json_encode([
+            "success" => true,
+            "statut_dossier" => "accepte",
+            "is_matched" => $user ? true : false,
+            "page" => $page,
+            "limit" => $limit,
+            "total" => $total,
+            "has_more" => $hasMore,
+            "offres" => $offres
+        ]);
     }
 
     // ==========================
