@@ -4,6 +4,7 @@ require_once "../controllers/UserController.php";
 require_once "../controllers/OffreController.php";
 require_once "../controllers/CategorieController.php";
 require_once "../controllers/CandidatureController.php";
+require_once __DIR__ . "/../routes/api.php";
 
 try {
     $controller = new UserController();
