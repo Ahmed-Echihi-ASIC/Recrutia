@@ -1,0 +1,6 @@
+{
+    "name": "recrutia/backend",
+    "require": {
+        "php": ">=8.1"
+    }
+}
