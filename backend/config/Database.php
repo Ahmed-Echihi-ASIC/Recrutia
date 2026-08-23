@@ -48,13 +48,13 @@ class Database
     public $conn;
 
     public function __construct()
-    {
-        $this->host     = $_ENV['DB_HOST'] ?? 'localhost';
-        $this->port     = $_ENV['DB_PORT'] ?? '5432';
-        $this->dbname   = $_ENV['DB_NAME'] ?? 'recrutia_db';
-        $this->username = $_ENV['DB_USER'] ?? 'postgres';
-        $this->password = $_ENV['DB_PASSWORD'] ?? '09082004';
-    }
+{
+    $this->host     = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? 'localhost');
+    $this->port     = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? '5432');
+    $this->dbname   = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? 'recrutia_db');
+    $this->username = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? 'postgres');
+    $this->password = getenv('DB_PASSWORD') ?: ($_ENV['DB_PASSWORD'] ?? null);
+}
 
     public function connect()
     {
@@ -63,7 +63,7 @@ class Database
         try {
 
             $this->conn = new PDO(
-                "pgsql:host={$this->host};port={$this->port};dbname={$this->dbname}",
+                "pgsql:host={$this->host};port={$this->port};dbname={$this->dbname};sslmode=require",
                 $this->username,
                 $this->password
             );
