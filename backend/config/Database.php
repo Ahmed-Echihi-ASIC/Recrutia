@@ -62,11 +62,13 @@ class Database
 
         try {
 
-            $this->conn = new PDO(
-                "pgsql:host={$this->host};port={$this->port};dbname={$this->dbname};sslmode=require",
-                $this->username,
-                $this->password
-            );
+            $sslmode = getenv('DB_SSLMODE') ?: ($_ENV['DB_SSLMODE'] ?? 'prefer');
+
+$this->conn = new PDO(
+    "pgsql:host={$this->host};port={$this->port};dbname={$this->dbname};sslmode={$sslmode}",
+    $this->username,
+    $this->password
+);
 
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
